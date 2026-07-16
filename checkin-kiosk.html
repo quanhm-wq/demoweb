@@ -18,7 +18,7 @@
         <h1 style="font-size:24px;margin:0;">Kiosk check-in</h1>
         <p class="muted" style="margin:4px 0 0;">Quét khuôn mặt để tự nhận diện · xếp sân theo trình độ · trừ số buổi</p>
       </div>
-      <span class="badge badge-green"><span class="live-dot" style="background:#22c55e"></span> Camera sẵn sàng</span>
+      <span class="badge badge-green"><span class="live-dot" style="background:var(--color-accent)"></span> Camera sẵn sàng</span>
     </div>
 
     <div class="grid" style="grid-template-columns:1fr 1fr;gap:20px;">
@@ -27,7 +27,7 @@
         <div class="scanner" id="cam" style="aspect-ratio:1;background:radial-gradient(circle at 50% 38%, #17233b, #0a0f1c);">
           <div class="face-frame"><span class="tl"></span><span class="tr"></span><span class="bl"></span><span class="br"></span></div>
           <div class="scanline" id="scanline" style="display:none;"></div>
-          <div id="cam-face" style="position:absolute;inset:0;display:grid;place-items:center;font-size:120px;">🙂</div>
+          <div id="cam-face" style="position:absolute;inset:0;display:grid;place-items:center;overflow:hidden;"><span class="muted" style="font-size:13px;">Chưa có khuôn mặt trong khung</span></div>
           <div id="cam-hint" style="position:absolute;left:0;right:0;bottom:12px;text-align:center;font-size:13px;color:var(--color-muted-fg);">Đưa khuôn mặt vào khung</div>
         </div>
         <button class="btn btn-primary btn-block" id="scan-btn" style="margin-top:14px;"></button>
@@ -69,23 +69,21 @@
     document.getElementById("scan-btn").innerHTML = SB.icon("scan", 18) + " Quét khuôn mặt";
     document.getElementById("empty-icon").innerHTML = SB.icon("user", 40);
 
-    const FACE_EMOJI = ["🙂","😀","😎","🧑","👩","👨","🧔","👱"];
     let pickedFace = null;
 
     function renderPicker() {
       const s = SB.load();
       document.getElementById("face-picker").innerHTML = s.members.slice(0, 8).map(m =>
-        `<button class="btn btn-ghost btn-sm face-opt" data-idx="${m.faceIdx}" title="${m.name}"
-           style="flex-direction:column;height:auto;padding:8px 4px;gap:2px;">
-           <span style="font-size:26px;">${FACE_EMOJI[m.faceIdx % 8]}</span>
-           <span style="font-size:10px;overflow:hidden;text-overflow:ellipsis;max-width:100%;white-space:nowrap;">${m.name.split(" ").slice(-1)[0]}</span>
+        `<button class="face-opt" data-idx="${m.faceIdx}" title="${m.name}">
+           <img src="${SB.avatarUrl(m)}" alt="${m.name}" loading="lazy" />
+           <span>${m.name.split(" ").slice(-1)[0]}</span>
          </button>`).join("");
       document.querySelectorAll(".face-opt").forEach(b => b.onclick = () => {
         pickedFace = +b.dataset.idx;
-        document.querySelectorAll(".face-opt").forEach(x => x.classList.remove("btn-primary"));
-        document.querySelectorAll(".face-opt").forEach(x => { if (x !== b) x.classList.add("btn-ghost"); });
-        b.classList.remove("btn-ghost"); b.classList.add("btn-primary");
-        document.getElementById("cam-face").textContent = FACE_EMOJI[pickedFace % 8];
+        document.querySelectorAll(".face-opt").forEach(x => x.classList.remove("selected"));
+        b.classList.add("selected");
+        const m = SB.load().members.find(x => x.faceIdx === pickedFace);
+        document.getElementById("cam-face").innerHTML = `<img src="${SB.avatarUrl(m)}" alt="${m.name}" style="width:100%;height:100%;object-fit:cover;" />`;
       });
     }
 
@@ -128,7 +126,7 @@
       ok.style.display = "block";
       ok.innerHTML = `
         <div style="display:flex;align-items:center;gap:14px;">
-          <div style="font-size:56px;">${FACE_EMOJI[m.faceIdx % 8]}</div>
+          <img src="${SB.avatarUrl(m)}" alt="${m.name}" style="width:64px;height:64px;border-radius:12px;object-fit:cover;border:1px solid var(--color-border);" />
           <div>
             <div class="badge badge-green" style="margin-bottom:6px;">${SB.icon("check",14)} Nhận diện thành công</div>
             <div style="font-size:22px;font-weight:700;">${m.name}</div>

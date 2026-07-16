@@ -16,13 +16,13 @@
     <!-- HERO -->
     <section class="grid" style="grid-template-columns:1.1fr .9fr;gap:32px;align-items:center;">
       <div>
-        <span class="badge badge-green" style="margin-bottom:16px;"><span class="live-dot" style="background:#22c55e"></span> Nền tảng vận hành sân pickleball thế hệ mới</span>
-        <h1 style="font-size:clamp(30px,4vw,48px);line-height:1.1;margin:12px 0 16px;font-weight:700;">
-          Quản lý sân pickleball<br/><span style="color:var(--color-accent)">thông minh kết hợp AI</span>
+        <span class="badge badge-green" style="margin-bottom:16px;"><span class="live-dot" style="background:var(--color-accent)"></span> 6 sân · mở cửa 6:00 – 22:00</span>
+        <h1 style="font-size:clamp(30px,4vw,46px);line-height:1.12;margin:12px 0 16px;font-weight:700;">
+          Điều hành sân pickleball,<br/><span style="color:var(--color-accent)">gọn trong một màn hình</span>
         </h1>
         <p class="muted" style="font-size:18px;max-width:560px;">
-          Nhận diện khuôn mặt tự động, xếp sân theo trình độ, VAR &amp; đo tốc độ bóng,
-          phân tích trận đấu bằng AI — tất cả kết nối loa &amp; màn LED tại sân.
+          Khách đặt sân và thanh toán trước, quét khuôn mặt để vào sân, hệ thống tự xếp sân theo trình độ.
+          Camera phân tích lại từng trận; khách tự cắt và đăng video lên màn LED tại sân.
         </p>
         <div style="display:flex;gap:12px;margin-top:28px;flex-wrap:wrap;">
           <a href="app-booking.html" class="btn btn-primary" id="cta1"></a>
@@ -40,8 +40,8 @@
         <div class="grid" id="mini-courts" style="grid-template-columns:repeat(3,1fr);gap:10px;"></div>
         <hr class="divider" />
         <div style="display:flex;justify-content:space-between;align-items:center;">
-          <div class="muted" style="font-size:13px;">Kỷ lục tốc độ bóng hôm nay</div>
-          <div class="num" style="font-size:22px;font-weight:700;color:var(--color-accent)" id="mini-record">—</div>
+          <div class="muted" style="font-size:13px;">Video khách đăng lên màn LED</div>
+          <div class="num" style="font-size:22px;font-weight:700;color:var(--color-accent)" id="mini-clips">—</div>
         </div>
       </div>
     </section>
@@ -67,7 +67,7 @@
         <div>
           <div style="font-weight:600;margin-bottom:4px;">Đây là bản demo giao diện (Frontend)</div>
           <p class="muted" style="margin:0;font-size:14px;max-width:820px;">
-            Các tính năng phần cứng &amp; AI (nhận diện khuôn mặt, đo tốc độ bóng, phân tích video, loa/đèn/LED vật lý)
+            Các tính năng phần cứng &amp; AI (nhận diện khuôn mặt, phân tích video trận đấu, loa/đèn/LED vật lý)
             được <strong>mô phỏng</strong> để minh hoạ luồng nghiệp vụ. Dữ liệu lưu tạm trong trình duyệt (localStorage) và
             liên thông giữa các màn hình. Bạn có thể bấm
             <button class="link" style="background:none;border:0;cursor:pointer;padding:0" onclick="SB.reset();location.reload()">đặt lại dữ liệu demo</button>.
@@ -78,7 +78,7 @@
   </main>
 
   <footer class="container muted" style="padding:32px 16px;font-size:13px;border-top:1px solid var(--color-border);">
-    Smart Pickleball · Bản demo thiết kế bởi UI/UX Pro Max · Dark Mode (OLED)
+    Smart Pickleball · Hệ thống quản lý sân · © 2026
   </footer>
 
   <script src="assets/app.js"></script>
@@ -92,7 +92,6 @@
       const s = SB.load();
       const occupied = s.courts.filter(c => c.status === "occupied").length;
       const players = s.courts.reduce((n, c) => n + c.players.length, 0);
-      const top = SB.topRecord();
 
       // hero stats
       document.getElementById("hero-stats").innerHTML = [
@@ -111,13 +110,13 @@
         </div>`;
       }).join("");
 
-      document.getElementById("mini-record").textContent = top ? (top.speed + " km/h") : "—";
+      document.getElementById("mini-clips").textContent = (s.clips ? s.clips.length : 0) + " video";
     }
 
     const flows = [
       ["1", "calendar", "Đặt sân online", "Đăng ký thành viên (trình độ, vợt paddle), chọn ngày/giờ/sân, thanh toán trước, nhận QR/PIN &amp; đăng ký khuôn mặt."],
       ["2", "scan", "Đến sân — quét mặt", "Nhận diện khuôn mặt, tự check-in, trừ số buổi, xếp sân theo trình độ và thông báo qua loa."],
-      ["3", "chart", "Chơi &amp; phân tích AI", "Camera 4K + cảm biến: đo tốc độ bóng, VAR, đếm rally, heatmap, quãng đường, highlight pha bóng dài."],
+      ["3", "chart", "Chơi &amp; phân tích AI", "Camera 4K phân tích trận đấu: đếm rally, heatmap di chuyển, quãng đường chạy. Khách tự cắt &amp; đăng video lên màn LED."],
     ];
     document.getElementById("flow").innerHTML = flows.map(([n, ic, t, d]) =>
       `<div class="card card-pad hoverable">
@@ -133,9 +132,9 @@
       ["app-booking.html", "calendar", "App đặt sân", "Đăng ký, đặt sân, thanh toán, QR/PIN"],
       ["checkin-kiosk.html", "scan", "Kiosk check-in", "Quét khuôn mặt & xếp sân tự động"],
       ["admin-dashboard.html", "monitor", "Dashboard quản lý", "Sơ đồ sân, CRM, doanh thu, no-show, đèn"],
-      ["led-display.html", "bolt", "Màn LED tại sân", "Xếp người, VAR, kỷ lục tốc độ bóng"],
+      ["led-display.html", "bolt", "Màn LED tại sân", "Khách đăng video, chiếu lên màn LED, xếp người"],
       ["match-analytics.html", "chart", "Phân tích AI", "Rally, heatmap, quãng đường, highlight"],
-      ["#", "users", "CRM thành viên", "Hồ sơ, trình độ, lịch sử (trong Dashboard)"],
+      ["crm.html", "users", "Khách hàng (CRM)", "Hồ sơ, gói tập, địa chỉ, lịch sử chi tiêu"],
     ];
     document.getElementById("modules").innerHTML = mods.map(([href, ic, t, d]) =>
       `<a href="${href}" class="card card-pad hoverable" style="text-decoration:none;display:block;">

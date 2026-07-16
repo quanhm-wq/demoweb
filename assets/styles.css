@@ -3,29 +3,30 @@
    Nguồn: skill UI/UX Pro Max
    ============================================================ */
 :root {
-  --color-primary: #1E293B;
+  /* Tông charcoal trung tính (bớt "xanh-đen tech"), accent xanh sân pickleball */
+  --color-primary: #20262E;
   --color-on-primary: #FFFFFF;
-  --color-secondary: #334155;
-  --color-accent: #22C55E;      /* xanh lá — trạng thái/thể thao */
-  --color-accent-dim: #16A34A;
-  --color-background: #0F172A;
-  --color-surface: #131C31;
-  --color-foreground: #F8FAFC;
-  --color-muted: #272F42;
-  --color-muted-fg: #94A3B8;
-  --color-border: #334155;
-  --color-destructive: #EF4444;
-  --color-warning: #F59E0B;
-  --color-info: #38BDF8;
+  --color-secondary: #2C333D;
+  --color-accent: #2FB56B;      /* xanh sân — trầm hơn neon */
+  --color-accent-dim: #23945A;
+  --color-background: #0E1114;
+  --color-surface: #161A1F;
+  --color-foreground: #F1F3F5;
+  --color-muted: #1D2126;
+  --color-muted-fg: #98A2B0;
+  --color-border: #2A2F37;
+  --color-destructive: #E5484D;
+  --color-warning: #E0952A;
+  --color-info: #4C9BD6;
 
   --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
   --space-5: 24px; --space-6: 32px; --space-8: 48px; --space-10: 64px;
 
-  --radius: 14px;
-  --radius-sm: 8px;
-  --radius-lg: 22px;
-  --ring: 0 0 0 3px rgba(34, 197, 94, 0.35);
-  --shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.6);
+  --radius: 10px;
+  --radius-sm: 7px;
+  --radius-lg: 14px;
+  --ring: 0 0 0 3px rgba(47, 181, 107, 0.30);
+  --shadow: 0 12px 34px -16px rgba(0, 0, 0, 0.7);
 }
 
 * { box-sizing: border-box; }
@@ -44,21 +45,19 @@ body {
 
 .font-mono, .num { font-family: 'Fira Code', ui-monospace, monospace; }
 
-/* Nền có sắc độ nhẹ để không phẳng bệt */
+/* Nền gần như phẳng, chỉ một chút sáng rất nhẹ phía trên để không bệt */
 .bg-app {
   background:
-    radial-gradient(1200px 600px at 80% -10%, rgba(34,197,94,0.08), transparent 60%),
-    radial-gradient(900px 500px at -10% 10%, rgba(56,189,248,0.06), transparent 55%),
+    radial-gradient(1000px 480px at 70% -20%, rgba(47,181,107,0.035), transparent 60%),
     var(--color-background);
   min-height: 100vh;
 }
 
 /* ---------- Component: Card ---------- */
 .card {
-  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  box-shadow: var(--shadow);
 }
 .card-pad { padding: var(--space-5); }
 
@@ -103,19 +102,19 @@ body {
   font-size: 12px; font-weight: 600; font-family: 'Fira Code', monospace;
   border: 1px solid var(--color-border); background: var(--color-muted);
 }
-.badge-green { color: #86efac; border-color: rgba(34,197,94,.4); background: rgba(34,197,94,.12); }
-.badge-red   { color: #fca5a5; border-color: rgba(239,68,68,.4); background: rgba(239,68,68,.12); }
-.badge-amber { color: #fcd34d; border-color: rgba(245,158,11,.4); background: rgba(245,158,11,.12); }
-.badge-blue  { color: #7dd3fc; border-color: rgba(56,189,248,.4); background: rgba(56,189,248,.12); }
+.badge-green { color: #7ee0a8; border-color: rgba(47,181,107,.40); background: rgba(47,181,107,.12); }
+.badge-red   { color: #f0999c; border-color: rgba(229,72,77,.40); background: rgba(229,72,77,.12); }
+.badge-amber { color: #f0c069; border-color: rgba(224,149,42,.40); background: rgba(224,149,42,.12); }
+.badge-blue  { color: #8fc2e8; border-color: rgba(76,155,214,.40); background: rgba(76,155,214,.12); }
 .badge-slate { color: var(--color-muted-fg); }
 
 /* Trình độ */
 .level-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-.lv-newbie { background: #64748B; }
-.lv-y      { background: #38BDF8; }
-.lv-tb     { background: #22C55E; }
-.lv-tbc    { background: #F59E0B; }
-.lv-pro    { background: #EF4444; }
+.lv-newbie { background: #7B8493; }
+.lv-y      { background: #4C9BD6; }
+.lv-tb     { background: #2FB56B; }
+.lv-tbc    { background: #E0952A; }
+.lv-pro    { background: #E5484D; }
 
 /* ---------- Layout helpers ---------- */
 .container { width: 100%; max-width: 1240px; margin: 0 auto; padding: 0 var(--space-4); }
@@ -149,9 +148,31 @@ body {
   transition: border-color .2s ease, transform .15s ease;
 }
 .court:hover { transform: translateY(-2px); }
-.court.occupied { border-color: rgba(34,197,94,.5); }
+.court.occupied { border-color: rgba(47,181,107,.5); }
 .court.free     { border-color: var(--color-border); opacity: .8; }
-.court.overdue  { border-color: rgba(239,68,68,.6); }
+.court.overdue  { border-color: rgba(229,72,77,.6); }
+
+/* Modal / drawer */
+.overlay {
+  position: fixed; inset: 0; z-index: 90;
+  background: rgba(2, 6, 23, 0.6); backdrop-filter: blur(2px);
+  display: flex; justify-content: flex-end;
+}
+.overlay.center { justify-content: center; align-items: flex-start; padding: 6vh 16px; }
+.drawer {
+  width: min(460px, 100%); height: 100%;
+  background: var(--color-surface); border-left: 1px solid var(--color-border);
+  overflow-y: auto; box-shadow: var(--shadow);
+  animation: slidepanel .22s ease;
+}
+.modal {
+  width: min(560px, 100%);
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden;
+  animation: popin .18s ease;
+}
+@keyframes slidepanel { from { transform: translateX(24px); opacity: .6; } to { transform: none; opacity: 1; } }
+@keyframes popin { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
 
 /* Toast / loa */
 .toast-wrap { position: fixed; right: 16px; bottom: 16px; z-index: 100; display: flex; flex-direction: column; gap: 10px; max-width: 360px; }
@@ -168,12 +189,28 @@ body {
 .pulse { position: relative; }
 .pulse::before {
   content: ''; position: absolute; inset: -4px; border-radius: inherit;
-  box-shadow: 0 0 0 0 rgba(34,197,94,.5); animation: pulse 1.8s infinite;
+  box-shadow: 0 0 0 0 rgba(47,181,107,.5); animation: pulse 1.8s infinite;
 }
-@keyframes pulse { 70% { box-shadow: 0 0 0 12px rgba(34,197,94,0); } 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); } }
+@keyframes pulse { 70% { box-shadow: 0 0 0 12px rgba(47,181,107,0); } 100% { box-shadow: 0 0 0 0 rgba(47,181,107,0); } }
 
 .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-destructive); display: inline-block; animation: blink 1.2s infinite; }
 @keyframes blink { 50% { opacity: .3; } }
+
+/* Avatar picker (kiosk) */
+.face-opt {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 8px 4px; border: 1px solid var(--color-border); border-radius: 12px;
+  background: var(--color-muted); cursor: pointer;
+  transition: border-color .2s ease, transform .15s ease;
+}
+.face-opt:hover { transform: translateY(-2px); border-color: var(--color-secondary); }
+.face-opt.selected { border-color: var(--color-accent); box-shadow: var(--ring); }
+.face-opt:focus-visible { outline: none; box-shadow: var(--ring); }
+.face-opt img { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; background: var(--color-secondary); }
+.face-opt span { font-size: 11px; color: var(--color-muted-fg); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Avatar tròn dùng chung */
+.avatar { border-radius: 50%; object-fit: cover; background: var(--color-secondary); border: 1px solid var(--color-border); }
 
 /* Scanner (kiosk) */
 .scanner { position: relative; border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--color-border); }
@@ -184,7 +221,7 @@ body {
   animation: scan 2.4s ease-in-out infinite;
 }
 @keyframes scan { 0%,100% { top: 6%; } 50% { top: 92%; } }
-.face-frame { position: absolute; inset: 12%; border: 2px dashed rgba(34,197,94,.7); border-radius: 20px; }
+.face-frame { position: absolute; inset: 12%; border: 2px dashed rgba(47,181,107,.7); border-radius: 20px; }
 .face-frame span { position: absolute; width: 22px; height: 22px; border: 3px solid var(--color-accent); }
 .face-frame .tl { top: -3px; left: -3px; border-right: 0; border-bottom: 0; border-radius: 6px 0 0 0; }
 .face-frame .tr { top: -3px; right: -3px; border-left: 0; border-bottom: 0; border-radius: 0 6px 0 0; }

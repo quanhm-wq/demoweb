@@ -93,10 +93,10 @@
     <section class="card card-pad step-panel" data-step="3" style="display:none;text-align:center;">
       <h3 style="margin-top:0;">Đăng ký khuôn mặt</h3>
       <p class="muted">Để check-in tự động khi đến sân. (Mô phỏng camera — bấm nút để "quét")</p>
-      <div class="scanner" id="face-box" style="max-width:320px;margin:16px auto;aspect-ratio:1;background:radial-gradient(circle at 50% 40%, #1e293b, #0b1120);">
+      <div class="scanner" id="face-box" style="max-width:320px;margin:16px auto;aspect-ratio:1;background:var(--color-muted);overflow:hidden;">
         <div class="face-frame"><span class="tl"></span><span class="tr"></span><span class="bl"></span><span class="br"></span></div>
         <div class="scanline" style="display:none;" id="face-scanline"></div>
-        <div id="face-emoji" style="position:absolute;inset:0;display:grid;place-items:center;font-size:96px;opacity:.9;">🙂</div>
+        <div id="face-emoji" style="position:absolute;inset:0;display:grid;place-items:center;"><span class="muted" style="font-size:13px;">Đưa khuôn mặt vào khung</span></div>
       </div>
       <div id="face-status" class="muted" style="min-height:24px;"></div>
       <div style="display:flex;justify-content:center;gap:10px;margin-top:12px;">
@@ -278,6 +278,8 @@
           startISO: start.toISOString(), durationMin: draft.dur, sessionsPack: draft.pack,
         });
         SB.toast("Thanh toán thành công", SB.fmtVND(total()) + " qua " + draft.method, "ok");
+        const mem = SB.load().members.find(x => x.id === draft.memberId);
+        if (mem) document.getElementById("face-emoji").innerHTML = `<img src="${SB.avatarUrl(mem)}" alt="${mem.name}" style="width:100%;height:100%;object-fit:cover;" />`;
         goto(3);
       }, 900);
     };

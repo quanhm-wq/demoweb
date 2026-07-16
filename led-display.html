@@ -11,11 +11,7 @@
   <style>
     .led { min-height: 100vh; display: flex; flex-direction: column; }
     .led-hd { display:flex;justify-content:space-between;align-items:center;padding:16px 28px;border-bottom:1px solid var(--color-border); }
-    .led-grid { flex:1; display:grid; grid-template-columns: 1.15fr 1fr; gap:20px; padding:20px 28px; }
-    .record-hero { font-family:'Fira Code',monospace; font-weight:700; line-height:.9; }
-    .flash { animation: flash 1s ease 3; }
-    @keyframes flash { 50% { background: rgba(34,197,94,.18); } }
-    .big-speed { font-size: clamp(60px, 12vw, 150px); }
+    .led-grid { flex:1; display:grid; grid-template-columns: 1.1fr 1fr; gap:20px; padding:20px 28px; }
     @media (max-width: 900px){ .led-grid{ grid-template-columns:1fr; } }
   </style>
 </head>
@@ -25,69 +21,51 @@
     <div class="led-hd">
       <div class="brand" style="font-size:20px;"><span class="brand-mark">SP</span> Smart Pickleball · Sân <span id="court-num" class="num" style="color:var(--color-accent)">3</span></div>
       <div style="display:flex;gap:14px;align-items:center;">
-        <span class="badge badge-red" style="font-size:14px;"><span class="live-dot"></span> TRỰC TIẾP</span>
-        <span class="num" id="led-clock" style="font-size:20px;"></span>
         <a href="index.html" class="btn btn-sm btn-ghost">Thoát</a>
       </div>
     </div>
 
     <div class="led-grid">
-      <!-- Trái: VAR + kỷ lục tốc độ -->
+      <!-- Trái: màn LED đang chiếu -->
       <div class="grid" style="gap:20px;align-content:start;">
-        <!-- Kỷ lục tốc độ -->
-        <div class="card card-pad" id="record-card">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <div class="muted" style="text-transform:uppercase;letter-spacing:.1em;font-size:13px;">Tốc độ bóng vừa ghi nhận</div>
-            <span class="badge badge-blue">Cảm biến radar</span>
-          </div>
-          <div style="display:flex;align-items:baseline;gap:12px;margin:6px 0 2px;">
-            <div class="record-hero big-speed" id="cur-speed" style="color:var(--color-foreground)">0</div>
-            <div style="font-size:24px;color:var(--color-muted-fg)">km/h</div>
-          </div>
-          <div id="record-note" style="min-height:28px;font-weight:600;"></div>
-          <hr class="divider"/>
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <div>
-              <div class="muted" style="font-size:13px;">🏆 Kỷ lục sân hiện tại</div>
-              <div class="num" id="top-speed" style="font-size:34px;font-weight:700;color:var(--color-accent)">—</div>
-            </div>
-            <div style="text-align:right;" class="muted" id="top-holder"></div>
-          </div>
-        </div>
-
-        <!-- VAR replay -->
+        <!-- Màn LED — nội dung đang chiếu -->
         <div class="card card-pad">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-            <div style="font-weight:600;display:flex;align-items:center;gap:8px;"><span id="var-ic"></span> VAR — Xem lại pha bóng</div>
-            <span class="badge badge-slate">Camera 4K · 60fps</span>
+            <div style="font-weight:600;display:flex;align-items:center;gap:8px;"><span id="var-ic"></span> Màn LED — Nội dung đang chiếu</div>
+            <span class="badge badge-slate" id="led-status">Đang trống</span>
           </div>
-          <div id="var-screen" style="position:relative;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:linear-gradient(135deg,#0b1120,#152036);border:1px solid var(--color-border);">
-            <div id="var-court" style="position:absolute;inset:12% 18%;border:2px solid rgba(148,163,184,.35);border-radius:4px;">
-              <div style="position:absolute;left:50%;top:0;bottom:0;width:2px;background:rgba(148,163,184,.35);"></div>
-              <div style="position:absolute;left:0;right:0;top:50%;height:2px;background:rgba(34,197,94,.5);"></div>
-            </div>
-            <div id="shuttle" style="position:absolute;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 0 14px #fff;left:20%;top:30%;"></div>
-            <div id="var-tag" style="position:absolute;left:10px;top:10px;" class="badge badge-red"><span class="live-dot"></span> REPLAY</div>
-            <div id="var-idle" style="position:absolute;inset:0;display:grid;place-items:center;color:var(--color-muted-fg);">Chờ pha bóng tiếp theo...</div>
-          </div>
+          <div id="led-screen" style="position:relative;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#0a0e13;border:1px solid var(--color-border);"></div>
           <div style="display:flex;gap:10px;margin-top:12px;">
-            <button class="btn btn-primary" id="smash-btn"></button>
-            <button class="btn btn-ghost" id="replay-btn">Phát lại highlight</button>
+            <button class="btn btn-ghost" id="stop-btn">Dừng chiếu</button>
           </div>
         </div>
       </div>
 
-      <!-- Phải: Xếp người theo trình độ -->
-      <div class="card card-pad" style="display:flex;flex-direction:column;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-          <div style="font-weight:700;font-size:20px;">Xếp người chơi theo trình độ</div>
-          <span class="badge badge-green">Tự động</span>
+      <!-- Phải: Thư viện chiếu + xếp người -->
+      <div class="grid" style="gap:20px;align-content:start;">
+        <!-- Thư viện video đoạn cut -->
+        <div class="card card-pad">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+            <div style="font-weight:700;font-size:18px;">Thư viện video (đoạn cut)</div>
+            <button class="btn btn-primary btn-sm" id="upload-btn"></button>
+          </div>
+          <p class="muted" style="margin:-6px 0 12px;font-size:13px;">Chọn một đoạn cut để chiếu lên màn LED tại sân, hoặc tải video của khách lên.</p>
+          <div id="clip-list" class="grid" style="gap:10px;"></div>
+          <input type="file" id="file-input" accept="video/*" style="display:none;" />
         </div>
-        <div id="placement" class="grid" style="gap:12px;align-content:start;flex:1;"></div>
-        <div class="card card-pad" style="margin-top:14px;border-color:rgba(56,189,248,.35);">
-          <div style="display:flex;gap:10px;align-items:center;">
-            <span style="color:var(--color-info)" id="ann-ic"></span>
-            <span id="ann-text" style="font-size:15px;">Hệ thống sẽ tự thông báo khi có người check-in.</span>
+
+        <!-- Xếp người theo trình độ -->
+        <div class="card card-pad" style="display:flex;flex-direction:column;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+            <div style="font-weight:700;font-size:18px;">Xếp người chơi theo trình độ</div>
+            <span class="badge badge-green">Tự động</span>
+          </div>
+          <div id="placement" class="grid" style="gap:12px;align-content:start;flex:1;"></div>
+          <div class="card card-pad" style="margin-top:14px;border-color:rgba(76,155,214,.35);">
+            <div style="display:flex;gap:10px;align-items:center;">
+              <span style="color:var(--color-info)" id="ann-ic"></span>
+              <span id="ann-text" style="font-size:15px;">Hệ thống sẽ tự thông báo khi có người check-in.</span>
+            </div>
           </div>
         </div>
       </div>
@@ -98,99 +76,111 @@
   <script>
     document.getElementById("var-ic").innerHTML = SB.icon("play", 18);
     document.getElementById("ann-ic").innerHTML = SB.icon("bell", 20);
-    document.getElementById("smash-btn").innerHTML = SB.icon("bolt", 18) + " Mô phỏng cú đập";
-    document.getElementById("replay-btn");
-
-    const PLAYERS_POOL = ["Lê Hoàng Cường", "Nguyễn Văn An", "Vũ Minh Đức", "Đỗ Quang Huy", "Trần Thị Bình"];
-
-    function tick() {
-      const d = new Date();
-      document.getElementById("led-clock").textContent = SB.fmtTime(d) + ":" + SB.pad(d.getSeconds());
-    }
-    setInterval(tick, 1000); tick();
-
-    function renderRecord() {
-      const top = SB.topRecord();
-      if (top) {
-        document.getElementById("top-speed").textContent = top.speed + " km/h";
-        document.getElementById("top-holder").innerHTML = `<div style="font-weight:600">${top.player}</div><div style="font-size:12px">Sân ${top.court}</div>`;
-      }
-    }
+    document.getElementById("upload-btn").innerHTML = SB.icon("play", 14) + " Tải video lên";
 
     function renderPlacement() {
       const s = SB.load();
-      // gom người chơi theo trình độ (từ các sân đang hoạt động)
       const groups = {};
       s.courts.forEach(c => c.players.forEach(p => { (groups[p.level] = groups[p.level] || []).push({ ...p, court: c.id }); }));
       const order = Object.keys(SB.LEVELS).sort((a, b) => SB.LEVELS[b].order - SB.LEVELS[a].order);
       const el = document.getElementById("placement");
-      const any = Object.keys(groups).length;
-      if (!any) { el.innerHTML = `<div class="muted" style="text-align:center;padding:30px;">Chưa có người chơi. Hãy check-in tại kiosk.</div>`; return; }
+      if (!Object.keys(groups).length) { el.innerHTML = `<div class="muted" style="text-align:center;padding:30px;">Chưa có người chơi. Hãy check-in tại kiosk.</div>`; return; }
       el.innerHTML = order.filter(lv => groups[lv]).map(lv => {
         const info = SB.LEVELS[lv];
         return `<div class="card card-pad" style="padding:14px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-            <div style="font-weight:700;font-size:18px;"><span class="level-dot ${info.cls}"></span> ${info.name}</div>
+            <div style="font-weight:700;font-size:16px;"><span class="level-dot ${info.cls}"></span> ${info.name}</div>
             <span class="badge badge-slate">${groups[lv].length} người</span>
           </div>
           <div style="display:flex;flex-wrap:wrap;gap:8px;">
-            ${groups[lv].map(p => `<span class="badge" style="font-size:14px;padding:6px 12px;">${p.name} · Sân ${p.court}</span>`).join("")}
+            ${groups[lv].map(p => `<span class="badge" style="font-size:13px;padding:5px 10px;">${p.name} · Sân ${p.court}</span>`).join("")}
           </div>
         </div>`;
       }).join("");
     }
 
-    // ---- Mô phỏng cú đập + phá kỷ lục ----
-    document.getElementById("smash-btn").onclick = () => {
-      const speed = Math.round(55 + Math.random() * 50); // 55-105 km/h (tốc độ bóng pickleball)
-      const player = PLAYERS_POOL[Math.floor(Math.random() * PLAYERS_POOL.length)];
-      const court = 3;
-      animateShuttle(speed);
-      const { broken, prevMax } = SB.recordSmash(speed, player, court);
-      document.getElementById("cur-speed").textContent = speed;
-
-      const note = document.getElementById("record-note");
-      const card = document.getElementById("record-card");
-      if (broken) {
-        note.innerHTML = `<span style="color:var(--color-accent)">🎉 PHÁ KỶ LỤC! ${player} · +${speed - prevMax} km/h</span>`;
-        document.getElementById("cur-speed").style.color = "var(--color-accent)";
-        card.classList.remove("flash"); void card.offsetWidth; card.classList.add("flash");
-        SB.announce(`Kỷ lục mới! ${player} vừa đập bóng ${speed} ki lô mét giờ`);
-        setTimeout(() => showHighlight(player, speed), 500);
-      } else {
-        note.innerHTML = `<span class="muted">Chưa phá kỷ lục (kỷ lục: ${prevMax} km/h)</span>`;
-        document.getElementById("cur-speed").style.color = "var(--color-foreground)";
+    // ---- Màn LED: nội dung đang chiếu ----
+    let ledTimer = null;
+    function renderLedScreen() {
+      const led = SB.getLed();
+      const screen = document.getElementById("led-screen");
+      const status = document.getElementById("led-status");
+      if (ledTimer) { clearInterval(ledTimer); ledTimer = null; }
+      if (!led || !led.nowPlaying) {
+        status.textContent = "Đang trống"; status.className = "badge badge-slate";
+        screen.innerHTML = `<div style="position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:var(--color-muted-fg);padding:20px;">
+          <div>${SB.icon("monitor", 30)}<div style="margin-top:8px;font-size:14px;">Màn hình trống — chọn một video ở thư viện để chiếu</div></div></div>`;
+        return;
       }
-      renderRecord();
-    };
-
-    function animateShuttle(speed) {
-      const sh = document.getElementById("shuttle");
-      document.getElementById("var-idle").style.display = "none";
-      const dur = Math.max(0.35, 1.2 - speed / 400);
-      sh.style.transition = "none"; sh.style.left = "18%"; sh.style.top = "28%";
-      void sh.offsetWidth;
-      sh.style.transition = `left ${dur}s cubic-bezier(.2,.7,.3,1), top ${dur}s cubic-bezier(.2,.7,.3,1)`;
-      sh.style.left = "78%"; sh.style.top = "66%";
+      const c = led.nowPlaying;
+      status.textContent = "Đang chiếu"; status.className = "badge badge-red";
+      screen.innerHTML = `
+        <div style="position:absolute;inset:0;display:grid;place-items:center;background:radial-gradient(circle at 50% 40%, #16202b, #080b0f);">
+          <div style="text-align:center;padding:20px;">
+            <div style="color:var(--color-accent);margin-bottom:10px;display:flex;justify-content:center;">${SB.icon("play", 38)}</div>
+            <div style="font-weight:700;font-size:18px;max-width:90%;margin:0 auto;">${c.title}</div>
+            <div class="muted" style="font-size:13px;margin-top:4px;">${c.source} · ${c.durSec}s · Sân ${led.court}</div>
+          </div>
+        </div>
+        <div class="badge badge-red" style="position:absolute;left:10px;top:10px;"><span class="live-dot"></span> ĐANG CHIẾU</div>
+        <div class="num" id="led-time" style="position:absolute;right:10px;top:10px;font-size:12px;color:var(--color-muted-fg);">0:00</div>
+        <div style="position:absolute;left:0;right:0;bottom:0;height:4px;background:rgba(255,255,255,.1);"><div id="led-prog" style="height:100%;width:0;background:var(--color-accent);transition:width .2s linear;"></div></div>`;
+      const start = Date.now();
+      ledTimer = setInterval(() => {
+        const prog = document.getElementById("led-prog");
+        const tEl = document.getElementById("led-time");
+        if (!prog) { clearInterval(ledTimer); ledTimer = null; return; }
+        const elapsed = ((Date.now() - start) / 1000) % c.durSec;   // phát lặp
+        prog.style.width = (elapsed / c.durSec * 100) + "%";
+        tEl.textContent = "0:" + SB.pad(Math.floor(elapsed));
+      }, 200);
     }
 
-    function showHighlight(player, speed) {
-      const tag = document.getElementById("var-tag");
-      tag.innerHTML = `<span class="live-dot"></span> HIGHLIGHT · ${speed} km/h`;
-      let i = 0;
-      const iv = setInterval(() => { animateShuttle(speed); if (++i >= 3) clearInterval(iv); }, 900);
+    // ---- Thư viện đoạn cut ----
+    function renderClips() {
+      const s = SB.load();
+      const led = s.led || {};
+      const el = document.getElementById("clip-list");
+      if (!s.clips.length) { el.innerHTML = `<div class="muted" style="text-align:center;padding:16px;">Chưa có video nào. Bấm "Tải video lên" để thêm.</div>`; return; }
+      el.innerHTML = s.clips.map(c => {
+        const playing = led.nowPlaying && led.nowPlaying.id === c.id;
+        return `<div class="card" style="padding:10px;display:flex;gap:12px;align-items:center;${playing ? "border-color:var(--color-accent);" : ""}">
+          <div style="width:60px;height:38px;border-radius:6px;background:linear-gradient(135deg,#16202b,#0b1016);display:grid;place-items:center;color:var(--color-muted-fg);flex:none;">${SB.icon("play", 15)}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.title}</div>
+            <div class="muted" style="font-size:12px;">${c.source} · ${c.durSec}s</div>
+          </div>
+          ${playing
+            ? `<span class="badge badge-green" style="flex:none;">Đang chiếu</span>`
+            : `<button class="btn btn-sm btn-primary cast" data-id="${c.id}" style="flex:none;">Chiếu</button>`}
+          <button class="btn btn-sm btn-ghost del" data-id="${c.id}" title="Xoá video" style="flex:none;padding:0 10px;">✕</button>
+        </div>`;
+      }).join("");
+      el.querySelectorAll(".cast").forEach(b => b.onclick = () => {
+        const c = SB.castToLed(b.dataset.id);
+        SB.toast("Đang chiếu lên màn LED", c.title, "ok");
+        SB.announce("Mời quý khách theo dõi video trên màn hình lớn tại sân");
+        renderLedScreen(); renderClips();
+      });
+      el.querySelectorAll(".del").forEach(b => b.onclick = () => { SB.removeClip(b.dataset.id); renderClips(); renderLedScreen(); });
     }
 
-    document.getElementById("replay-btn").onclick = () => {
-      const top = SB.topRecord();
-      if (!top) { SB.toast("Chưa có highlight", "Hãy mô phỏng một cú đập trước.", "warn"); return; }
-      showHighlight(top.player, top.speed);
-      SB.toast("Phát lại highlight", `${top.player} · ${top.speed} km/h`, "info");
+    document.getElementById("stop-btn").onclick = () => { SB.stopLed(); SB.toast("Đã dừng chiếu", "Màn LED trở về trạng thái trống.", "info"); renderLedScreen(); renderClips(); };
+
+    // Tải video lên (mô phỏng — chỉ lấy tên tệp)
+    document.getElementById("upload-btn").onclick = () => document.getElementById("file-input").click();
+    document.getElementById("file-input").onchange = (e) => {
+      const f = e.target.files[0]; if (!f) return;
+      const name = f.name.replace(/\.[^.]+$/, "");
+      SB.addClip({ title: name, source: "Khách tải lên", durSec: 15, court: 3 });
+      SB.toast("Đã thêm video", name, "ok");
+      renderClips();
+      e.target.value = "";
     };
 
     // Khi có check-in mới từ kiosk -> cập nhật xếp người + loa
     function onUpdate() {
-      renderPlacement(); renderRecord();
+      renderPlacement(); renderLedScreen(); renderClips();
       const s = SB.load();
       if (s.lastCheckin) {
         document.getElementById("ann-text").innerHTML =
@@ -198,7 +188,7 @@
       }
     }
 
-    renderRecord(); renderPlacement(); onUpdate();
+    renderPlacement(); renderLedScreen(); renderClips(); onUpdate();
     window.addEventListener("sbadm:update", onUpdate);
     window.addEventListener("storage", onUpdate);
   </script>

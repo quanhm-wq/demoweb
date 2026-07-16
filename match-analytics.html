@@ -38,7 +38,7 @@
           <canvas id="heatmap" style="position:absolute;inset:0;width:100%;height:100%;"></canvas>
           <!-- vạch sân -->
           <div style="position:absolute;inset:8%;border:2px solid rgba(148,163,184,.4);border-radius:3px;pointer-events:none;">
-            <div style="position:absolute;left:0;right:0;top:50%;height:2px;background:rgba(34,197,94,.55);"></div>
+            <div style="position:absolute;left:0;right:0;top:50%;height:2px;background:rgba(47,181,107,.55);"></div>
             <div style="position:absolute;top:0;bottom:0;left:50%;width:2px;background:rgba(148,163,184,.3);"></div>
           </div>
         </div>
@@ -70,8 +70,8 @@
     <!-- Highlights -->
     <div class="card card-pad" style="margin-top:20px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <div style="font-weight:600;">Highlight các pha bóng dài (AI tự trích xuất)</div>
-        <span class="badge badge-blue">Auto-clip</span>
+        <div style="font-weight:600;">Các pha bóng dài nhất trận</div>
+        <span class="badge badge-slate">Thống kê</span>
       </div>
       <div class="grid" id="highlights" style="grid-template-columns:repeat(3,1fr);"></div>
     </div>
@@ -113,7 +113,7 @@
       const idx = rallyData.map((d, i) => [d, i]).sort((a, b) => b[0] - a[0]).slice(0, 3);
       const highlights = idx.map(([d, i]) => ({
         rally: i + 1, dur: d, shuttles: shuttlesPerRally[i],
-        by: names[i % 2], speed: Math.round(55 + r() * 45),
+        by: names[i % 2],
       }));
 
       return { court, names, rallies, rallyData, totalRallySec, longest, matchMin, restSec, tempo, players, highlights };
@@ -151,7 +151,7 @@
         type: "bar",
         data: {
           labels: a.rallyData.map((_, i) => i + 1),
-          datasets: [{ label: "Giây", data: a.rallyData, backgroundColor: a.rallyData.map(d => d === a.longest ? "#22C55E" : "#334155"), borderRadius: 4 }],
+          datasets: [{ label: "Giây", data: a.rallyData, backgroundColor: a.rallyData.map(d => d === a.longest ? "#2FB56B" : "#2C333D"), borderRadius: 4 }],
         },
         options: {
           plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.raw + " giây · " + Math.max(2, Math.round(c.raw / 1.4)) + " lần chạm bóng" } } },
@@ -172,8 +172,8 @@
         data: {
           labels: a.players.map(p => p.name),
           datasets: [
-            { label: "Quãng đường (km)", data: a.players.map(p => +p.distance), backgroundColor: "#22C55E", borderRadius: 6 },
-            { label: "Tốc độ TB (km/h)", data: a.players.map(p => +p.avgSpeed), backgroundColor: "#38BDF8", borderRadius: 6 },
+            { label: "Quãng đường (km)", data: a.players.map(p => +p.distance), backgroundColor: "#2FB56B", borderRadius: 6 },
+            { label: "Tốc độ TB (km/h)", data: a.players.map(p => +p.avgSpeed), backgroundColor: "#4C9BD6", borderRadius: 6 },
           ],
         },
         options: {
@@ -187,29 +187,27 @@
       const playSec = a.totalRallySec, rest = a.restSec;
       charts.time = new Chart(document.getElementById("time-chart"), {
         type: "doughnut",
-        data: { labels: ["Bóng sống", "Nghỉ giữa rally"], datasets: [{ data: [playSec, rest], backgroundColor: ["#22C55E", "#334155"], borderColor: "#0F172A", borderWidth: 3 }] },
+        data: { labels: ["Bóng sống", "Nghỉ giữa rally"], datasets: [{ data: [playSec, rest], backgroundColor: ["#2FB56B", "#2C333D"], borderColor: "#161A1F", borderWidth: 3 }] },
         options: { plugins: { legend: { display: false } }, cutout: "62%" },
       });
       document.getElementById("time-legend").innerHTML =
-        `<span><span class="level-dot" style="background:#22c55e"></span> Bóng sống: <strong>${Math.round(playSec / 60)}p ${playSec % 60}s</strong></span> &nbsp;·&nbsp;
+        `<span><span class="level-dot" style="background:var(--color-accent)"></span> Bóng sống: <strong>${Math.round(playSec / 60)}p ${playSec % 60}s</strong></span> &nbsp;·&nbsp;
          <span><span class="level-dot" style="background:#334155"></span> Nghỉ: <strong>${Math.round(rest / 60)}p ${rest % 60}s</strong></span>`;
 
       // Highlights
-      document.getElementById("highlights").innerHTML = a.highlights.map((h, i) =>
-        `<div class="card card-pad hoverable">
-          <div style="position:relative;aspect-ratio:16/9;border-radius:10px;background:linear-gradient(135deg,#0b1120,#16233c);display:grid;place-items:center;margin-bottom:10px;overflow:hidden;">
-            <span style="color:var(--color-accent)">${SB.icon("play", 34)}</span>
-            <span class="badge badge-red" style="position:absolute;left:8px;top:8px;">${h.dur}s</span>
-            <span class="num" style="position:absolute;right:8px;bottom:8px;font-size:12px;color:var(--color-muted-fg)">HL_${SB.pad(i + 1)}.mp4</span>
+      document.getElementById("highlights").innerHTML = a.highlights.map((h) =>
+        `<div class="card card-pad">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <div style="font-weight:700;font-size:18px;">Rally #${h.rally}</div>
+            <span class="badge badge-green">${h.dur}s</span>
           </div>
-          <div style="font-weight:600;">Rally #${h.rally} · ${h.shuttles} lần chạm bóng</div>
-          <div class="muted" style="font-size:13px;">Kết thúc bởi ${h.by} · cú cuối ${h.speed} km/h</div>
+          <div class="muted" style="font-size:13px;">${h.shuttles} lần chạm bóng · kết thúc bởi ${h.by}</div>
         </div>`).join("");
     }
 
     function renderHmPlayers(a) {
       document.getElementById("hm-players").innerHTML = a.players.map((p, i) =>
-        `<span class="badge" style="font-size:12px;"><span class="level-dot" style="background:${i === 0 ? "#22c55e" : "#38bdf8"}"></span> ${p.name}</span>`).join("");
+        `<span class="badge" style="font-size:12px;"><span class="level-dot" style="background:${i === 0 ? "#2FB56B" : "#4C9BD6"}"></span> ${p.name}</span>`).join("");
     }
 
     // Heatmap trên canvas
@@ -220,14 +218,14 @@
       ctx.clearRect(0, 0, W, H);
       const r = rng(courtId * 131 + 7);
       // 2 người: mỗi người 1 nửa sân, tạo các điểm nóng
-      [[0.30, "#22c55e"], [0.70, "#38bdf8"]].forEach(([cx, col]) => {
+      [[0.30, "#2FB56B"], [0.70, "#4C9BD6"]].forEach(([cx, col]) => {
         const pts = 70;
         for (let i = 0; i < pts; i++) {
           const x = (cx + (r() - 0.5) * 0.34) * W;
           const y = (0.5 + (r() - 0.5) * 0.7) * H;
           const rad = 26 + r() * 34;
           const g = ctx.createRadialGradient(x, y, 0, x, y, rad);
-          const c = col === "#22c55e" ? "34,197,94" : "56,189,248";
+          const c = col === "#2FB56B" ? "47,181,107" : "76,155,214";
           g.addColorStop(0, `rgba(${c},0.12)`); g.addColorStop(1, `rgba(${c},0)`);
           ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, rad, 0, 7); ctx.fill();
         }

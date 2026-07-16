@@ -36,7 +36,7 @@
         </div>
         <div class="grid" id="court-map" style="grid-template-columns:repeat(3,1fr);gap:12px;"></div>
         <div class="muted" style="font-size:12px;margin-top:12px;display:flex;gap:16px;flex-wrap:wrap;">
-          <span><span class="level-dot" style="background:#22c55e"></span> Đang chơi</span>
+          <span><span class="level-dot" style="background:var(--color-accent)"></span> Đang chơi</span>
           <span><span class="level-dot" style="background:#334155"></span> Trống</span>
           <span><span class="level-dot" style="background:#ef4444"></span> Quá giờ check-in</span>
         </div>
@@ -194,7 +194,7 @@
       if (revChart) { revChart.data.labels = labels; revChart.data.datasets[0].data = data; revChart.update(); return; }
       revChart = new Chart(document.getElementById("rev-chart"), {
         type: "bar",
-        data: { labels, datasets: [{ label: "Nghìn đồng", data, backgroundColor: "#22C55E", borderRadius: 6 }] },
+        data: { labels, datasets: [{ label: "Nghìn đồng", data, backgroundColor: "#2FB56B", borderRadius: 6 }] },
         options: {
           plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => c.raw.toLocaleString("vi-VN") + ".000đ" } } },
           scales: {
