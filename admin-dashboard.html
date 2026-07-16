@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard quản lý — Smart Pickleball</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body class="bg-app">
+  <div id="topbar"></div>
+
+  <main class="container" style="max-width:1240px;padding-top:24px;padding-bottom:56px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:18px;">
+      <div>
+        <h1 style="font-size:24px;margin:0;">Bảng điều khiển vận hành</h1>
+        <p class="muted" style="margin:4px 0 0;" id="clock"></p>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-sm btn-ghost" id="btn-noshow"></button>
+        <button class="btn btn-sm btn-ghost" onclick="if(confirm('Đặt lại toàn bộ dữ liệu demo?')){SB.reset();location.reload()}">Reset demo</button>
+      </div>
+    </div>
+
+    <!-- KPI -->
+    <div class="grid" id="kpis" style="grid-template-columns:repeat(5,1fr);margin-bottom:20px;"></div>
+
+    <div class="grid" style="grid-template-columns:1.5fr 1fr;gap:20px;align-items:start;">
+      <!-- Sơ đồ sân -->
+      <div class="card card-pad">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <div style="font-weight:600;">Sơ đồ sân — thời gian thực</div>
+          <span class="badge badge-red"><span class="live-dot"></span> LIVE</span>
+        </div>
+        <div class="grid" id="court-map" style="grid-template-columns:repeat(3,1fr);gap:12px;"></div>
+        <div class="muted" style="font-size:12px;margin-top:12px;display:flex;gap:16px;flex-wrap:wrap;">
+          <span><span class="level-dot" style="background:#22c55e"></span> Đang chơi</span>
+          <span><span class="level-dot" style="background:#334155"></span> Trống</span>
+          <span><span class="level-dot" style="background:#ef4444"></span> Quá giờ check-in</span>
+        </div>
+      </div>
+
+      <!-- Cột phải -->
+      <div class="grid" style="gap:20px;">
+        <!-- Cảnh báo no-show -->
+        <div class="card card-pad">
+          <div style="font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+            <span style="color:var(--color-warning)" id="alert-ic"></span> Cảnh báo no-show
+          </div>
+          <div id="noshow-list" class="muted" style="font-size:14px;">Đang kiểm tra...</div>
+        </div>
+
+        <!-- Doanh thu -->
+        <div class="card card-pad">
+          <div style="font-weight:600;margin-bottom:10px;">Doanh thu theo giờ</div>
+          <canvas id="rev-chart" height="140"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Booking + CRM -->
+    <div class="grid" style="grid-template-columns:1fr 1fr;gap:20px;margin-top:20px;align-items:start;">
+      <div class="card card-pad">
+        <div style="font-weight:600;margin-bottom:10px;">Lịch đặt sân hôm nay</div>
+        <div id="bookings" class="scroll-y" style="max-height:340px;"></div>
+      </div>
+      <div class="card card-pad">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div style="font-weight:600;">CRM — Thành viên</div>
+          <input class="input" id="crm-search" placeholder="Tìm tên / SĐT..." style="max-width:200px;height:36px;" />
+        </div>
+        <div id="crm" class="scroll-y" style="max-height:340px;"></div>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <script src="assets/app.js"></script>
+  <script>
+    document.getElementById("topbar").innerHTML = SB.topbar("admin-dashboard.html");
+    document.getElementById("alert-ic").innerHTML = SB.icon("bell", 18);
+    document.getElementById("btn-noshow").innerHTML = SB.icon("clock", 16) + " Kiểm tra no-show";
+
+    function tickClock() {
+      const d = new Date();
+      document.getElementById("clock").textContent = SB.fmtDate(d) + " · " + SB.fmtTime(d) + ":" + SB.pad(d.getSeconds());
+    }
+    setInterval(tickClock, 1000); tickClock();
+
+    let revChart = null;
+
+    function render() {
+      const s = SB.load();
+      const occupied = s.courts.filter(c => c.status === "occupied");
+      const players = s.courts.reduce((n, c) => n + c.players.length, 0);
+      const noshows = SB.detectNoShows();
+
+      // KPIs
+      document.getElementById("kpis").innerHTML = [
+        [occupied.length + "/" + s.courts.length, "Sân hoạt động", "grid", "var(--color-accent)"],
+        [players, "Người đang chơi", "users", "var(--color-info)"],
+        [s.bookings.length, "Booking hôm nay", "calendar", "#fff"],
+        [noshows.length, "No-show", "clock", noshows.length ? "var(--color-destructive)" : "#fff"],
+        [SB.fmtVND(s.revenueToday), "Doanh thu", "money", "var(--color-accent)"],
+      ].map(([v, l, ic, col]) =>
+        `<div class="card card-pad">
+           <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+             <div class="stat"><span class="val" style="color:${col};font-size:${String(v).length > 7 ? "20px" : "28px"}">${v}</span><span class="lbl">${l}</span></div>
+             <span class="muted">${SB.icon(ic, 20)}</span>
+           </div>
+         </div>`).join("");
+
+      // Court map
+      const now = Date.now();
+      document.getElementById("court-map").innerHTML = s.courts.map(c => {
+        const overdue = noshows.some(b => b.court === c.id);
+        const cls = overdue ? "overdue" : (c.status === "occupied" ? "occupied" : "free");
+        let dur = "";
+        if (c.checkinAt) {
+          const mins = Math.floor((now - new Date(c.checkinAt)) / 60000);
+          dur = `<span class="num muted" style="font-size:12px;">${mins} phút</span>`;
+        }
+        const statusBadge = overdue
+          ? `<span class="badge badge-red">Quá giờ</span>`
+          : (c.status === "occupied" ? `<span class="badge badge-green">Đang chơi</span>` : `<span class="badge badge-slate">Trống</span>`);
+        return `<div class="court ${cls}">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div style="font-weight:700;">${c.name}</div>${statusBadge}
+          </div>
+          <div style="min-height:44px;margin:10px 0;font-size:13px;">
+            ${c.players.length
+              ? c.players.map(p => `<div><span class="level-dot ${SB.LEVELS[p.level].cls}"></span> ${p.name}</div>`).join("")
+              : '<span class="muted">— chưa có người —</span>'}
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            ${dur || '<span></span>'}
+            <div style="display:flex;gap:6px;">
+              <button class="btn btn-sm ${c.light ? "btn-primary" : "btn-ghost"}" title="Đèn sân" onclick="toggleLight(${c.id})">${SB.icon("light", 14)}</button>
+              ${c.status === "occupied" ? `<button class="btn btn-sm btn-ghost" title="Trả sân" onclick="release(${c.id})">${SB.icon("check", 14)}</button>` : ""}
+            </div>
+          </div>
+        </div>`;
+      }).join("");
+
+      // No-show list
+      const nsEl = document.getElementById("noshow-list");
+      if (!noshows.length) {
+        nsEl.innerHTML = `<span style="color:var(--color-accent)">✓ Không có sân nào quá giờ check-in.</span>`;
+      } else {
+        nsEl.innerHTML = noshows.map(b =>
+          `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--color-border);">
+             <div><strong>Sân ${b.court}</strong> · ${b.memberName}<br/><span class="muted" style="font-size:12px;">Đặt ${SB.fmtTime(new Date(b.start))} · quá ${SB.CHECKIN_GRACE_MIN}p</span></div>
+             <button class="btn btn-sm btn-danger" onclick="freeUp(${b.court})">Báo trống</button>
+           </div>`).join("");
+      }
+
+      // Bookings
+      document.getElementById("bookings").innerHTML = `<table class="tbl"><thead><tr><th>Giờ</th><th>Khách</th><th>Sân</th><th>TT</th></tr></thead><tbody>` +
+        s.bookings.slice().sort((a, b) => new Date(a.start) - new Date(b.start)).map(b => {
+          const badge = b.checkedIn ? `<span class="badge badge-green">Đã vào</span>`
+            : (noshows.some(n => n.id === b.id) ? `<span class="badge badge-red">No-show</span>` : `<span class="badge badge-amber">Chờ</span>`);
+          return `<tr><td class="num">${SB.fmtTime(new Date(b.start))}</td><td>${b.memberName}</td><td>Sân ${b.court}</td><td>${badge}</td></tr>`;
+        }).join("") + `</tbody></table>`;
+
+      // CRM
+      renderCRM(s, document.getElementById("crm-search").value.trim().toLowerCase());
+
+      // Revenue chart
+      drawRevenue(s);
+    }
+
+    function renderCRM(s, q) {
+      let list = s.members;
+      if (q) list = list.filter(m => m.name.toLowerCase().includes(q) || m.phone.includes(q));
+      document.getElementById("crm").innerHTML = `<table class="tbl"><thead><tr><th>Tên</th><th>Trình độ</th><th>Buổi</th><th>Lượt</th></tr></thead><tbody>` +
+        list.map(m => `<tr>
+            <td><div>${m.name}</div><div class="muted num" style="font-size:11px;">${m.phone}</div></td>
+            <td><span class="level-dot ${SB.LEVELS[m.level].cls}"></span> ${SB.LEVELS[m.level].name.replace(/\s*\(.*\)/, "")}</td>
+            <td class="num">${m.sessionsLeft}</td>
+            <td class="num">${m.visits}</td>
+          </tr>`).join("") + `</tbody></table>`;
+    }
+    document.getElementById("crm-search").addEventListener("input", (e) => renderCRM(SB.load(), e.target.value.trim().toLowerCase()));
+
+    function drawRevenue(s) {
+      const buckets = {};
+      s.bookings.forEach(b => { const h = new Date(b.start).getHours(); buckets[h] = (buckets[h] || 0) + b.price; });
+      const hours = Object.keys(buckets).map(Number).sort((a, b) => a - b);
+      const labels = hours.map(h => SB.pad(h) + "h");
+      const data = hours.map(h => buckets[h] / 1000);
+      if (!window.Chart) return;
+      if (revChart) { revChart.data.labels = labels; revChart.data.datasets[0].data = data; revChart.update(); return; }
+      revChart = new Chart(document.getElementById("rev-chart"), {
+        type: "bar",
+        data: { labels, datasets: [{ label: "Nghìn đồng", data, backgroundColor: "#22C55E", borderRadius: 6 }] },
+        options: {
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => c.raw.toLocaleString("vi-VN") + ".000đ" } } },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: "#94A3B8" } },
+            y: { grid: { color: "#1e293b" }, ticks: { color: "#94A3B8" } },
+          },
+        },
+      });
+    }
+
+    // Actions
+    window.toggleLight = (id) => { const c = SB.toggleLight(id); SB.toast("Đèn sân " + id, c.light ? "Đã BẬT đèn" : "Đã TẮT đèn", c.light ? "ok" : "info"); };
+    window.release = (id) => { SB.releaseCourt(id); SB.toast("Sân " + id, "Đã trả sân, tắt đèn tự động.", "info"); };
+    window.freeUp = (court) => {
+      const s = SB.load();
+      const b = s.bookings.find(x => x.court === court && !x.checkedIn);
+      if (b) { b.status = "no-show"; SB.save(s); }
+      SB.releaseCourt(court);
+      SB.announce(`Sân ${court} hiện đang trống, mời khách vãng lai đăng ký`);
+    };
+
+    document.getElementById("btn-noshow").onclick = () => {
+      const n = SB.detectNoShows().length;
+      SB.toast("Quét no-show", n ? `Phát hiện ${n} sân quá giờ check-in.` : "Không có sân nào quá giờ.", n ? "warn" : "ok");
+    };
+
+    render();
+    setInterval(render, 5000); // cập nhật thời lượng/no-show định kỳ
+    window.addEventListener("sbadm:update", render);
+    window.addEventListener("storage", render);
+  </script>
+</body>
+</html>

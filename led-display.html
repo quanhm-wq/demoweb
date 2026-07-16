@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Màn LED tại sân — Smart Pickleball</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/styles.css" />
+  <style>
+    .led { min-height: 100vh; display: flex; flex-direction: column; }
+    .led-hd { display:flex;justify-content:space-between;align-items:center;padding:16px 28px;border-bottom:1px solid var(--color-border); }
+    .led-grid { flex:1; display:grid; grid-template-columns: 1.15fr 1fr; gap:20px; padding:20px 28px; }
+    .record-hero { font-family:'Fira Code',monospace; font-weight:700; line-height:.9; }
+    .flash { animation: flash 1s ease 3; }
+    @keyframes flash { 50% { background: rgba(34,197,94,.18); } }
+    .big-speed { font-size: clamp(60px, 12vw, 150px); }
+    @media (max-width: 900px){ .led-grid{ grid-template-columns:1fr; } }
+  </style>
+</head>
+<body class="bg-app">
+  <div class="led" id="ledroot">
+    <!-- Header -->
+    <div class="led-hd">
+      <div class="brand" style="font-size:20px;"><span class="brand-mark">SP</span> Smart Pickleball · Sân <span id="court-num" class="num" style="color:var(--color-accent)">3</span></div>
+      <div style="display:flex;gap:14px;align-items:center;">
+        <span class="badge badge-red" style="font-size:14px;"><span class="live-dot"></span> TRỰC TIẾP</span>
+        <span class="num" id="led-clock" style="font-size:20px;"></span>
+        <a href="index.html" class="btn btn-sm btn-ghost">Thoát</a>
+      </div>
+    </div>
+
+    <div class="led-grid">
+      <!-- Trái: VAR + kỷ lục tốc độ -->
+      <div class="grid" style="gap:20px;align-content:start;">
+        <!-- Kỷ lục tốc độ -->
+        <div class="card card-pad" id="record-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div class="muted" style="text-transform:uppercase;letter-spacing:.1em;font-size:13px;">Tốc độ bóng vừa ghi nhận</div>
+            <span class="badge badge-blue">Cảm biến radar</span>
+          </div>
+          <div style="display:flex;align-items:baseline;gap:12px;margin:6px 0 2px;">
+            <div class="record-hero big-speed" id="cur-speed" style="color:var(--color-foreground)">0</div>
+            <div style="font-size:24px;color:var(--color-muted-fg)">km/h</div>
+          </div>
+          <div id="record-note" style="min-height:28px;font-weight:600;"></div>
+          <hr class="divider"/>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <div class="muted" style="font-size:13px;">🏆 Kỷ lục sân hiện tại</div>
+              <div class="num" id="top-speed" style="font-size:34px;font-weight:700;color:var(--color-accent)">—</div>
+            </div>
+            <div style="text-align:right;" class="muted" id="top-holder"></div>
+          </div>
+        </div>
+
+        <!-- VAR replay -->
+        <div class="card card-pad">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div style="font-weight:600;display:flex;align-items:center;gap:8px;"><span id="var-ic"></span> VAR — Xem lại pha bóng</div>
+            <span class="badge badge-slate">Camera 4K · 60fps</span>
+          </div>
+          <div id="var-screen" style="position:relative;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:linear-gradient(135deg,#0b1120,#152036);border:1px solid var(--color-border);">
+            <div id="var-court" style="position:absolute;inset:12% 18%;border:2px solid rgba(148,163,184,.35);border-radius:4px;">
+              <div style="position:absolute;left:50%;top:0;bottom:0;width:2px;background:rgba(148,163,184,.35);"></div>
+              <div style="position:absolute;left:0;right:0;top:50%;height:2px;background:rgba(34,197,94,.5);"></div>
+            </div>
+            <div id="shuttle" style="position:absolute;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 0 14px #fff;left:20%;top:30%;"></div>
+            <div id="var-tag" style="position:absolute;left:10px;top:10px;" class="badge badge-red"><span class="live-dot"></span> REPLAY</div>
+            <div id="var-idle" style="position:absolute;inset:0;display:grid;place-items:center;color:var(--color-muted-fg);">Chờ pha bóng tiếp theo...</div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:12px;">
+            <button class="btn btn-primary" id="smash-btn"></button>
+            <button class="btn btn-ghost" id="replay-btn">Phát lại highlight</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phải: Xếp người theo trình độ -->
+      <div class="card card-pad" style="display:flex;flex-direction:column;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <div style="font-weight:700;font-size:20px;">Xếp người chơi theo trình độ</div>
+          <span class="badge badge-green">Tự động</span>
+        </div>
+        <div id="placement" class="grid" style="gap:12px;align-content:start;flex:1;"></div>
+        <div class="card card-pad" style="margin-top:14px;border-color:rgba(56,189,248,.35);">
+          <div style="display:flex;gap:10px;align-items:center;">
+            <span style="color:var(--color-info)" id="ann-ic"></span>
+            <span id="ann-text" style="font-size:15px;">Hệ thống sẽ tự thông báo khi có người check-in.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/app.js"></script>
+  <script>
+    document.getElementById("var-ic").innerHTML = SB.icon("play", 18);
+    document.getElementById("ann-ic").innerHTML = SB.icon("bell", 20);
+    document.getElementById("smash-btn").innerHTML = SB.icon("bolt", 18) + " Mô phỏng cú đập";
+    document.getElementById("replay-btn");
+
+    const PLAYERS_POOL = ["Lê Hoàng Cường", "Nguyễn Văn An", "Vũ Minh Đức", "Đỗ Quang Huy", "Trần Thị Bình"];
+
+    function tick() {
+      const d = new Date();
+      document.getElementById("led-clock").textContent = SB.fmtTime(d) + ":" + SB.pad(d.getSeconds());
+    }
+    setInterval(tick, 1000); tick();
+
+    function renderRecord() {
+      const top = SB.topRecord();
+      if (top) {
+        document.getElementById("top-speed").textContent = top.speed + " km/h";
+        document.getElementById("top-holder").innerHTML = `<div style="font-weight:600">${top.player}</div><div style="font-size:12px">Sân ${top.court}</div>`;
+      }
+    }
+
+    function renderPlacement() {
+      const s = SB.load();
+      // gom người chơi theo trình độ (từ các sân đang hoạt động)
+      const groups = {};
+      s.courts.forEach(c => c.players.forEach(p => { (groups[p.level] = groups[p.level] || []).push({ ...p, court: c.id }); }));
+      const order = Object.keys(SB.LEVELS).sort((a, b) => SB.LEVELS[b].order - SB.LEVELS[a].order);
+      const el = document.getElementById("placement");
+      const any = Object.keys(groups).length;
+      if (!any) { el.innerHTML = `<div class="muted" style="text-align:center;padding:30px;">Chưa có người chơi. Hãy check-in tại kiosk.</div>`; return; }
+      el.innerHTML = order.filter(lv => groups[lv]).map(lv => {
+        const info = SB.LEVELS[lv];
+        return `<div class="card card-pad" style="padding:14px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <div style="font-weight:700;font-size:18px;"><span class="level-dot ${info.cls}"></span> ${info.name}</div>
+            <span class="badge badge-slate">${groups[lv].length} người</span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;">
+            ${groups[lv].map(p => `<span class="badge" style="font-size:14px;padding:6px 12px;">${p.name} · Sân ${p.court}</span>`).join("")}
+          </div>
+        </div>`;
+      }).join("");
+    }
+
+    // ---- Mô phỏng cú đập + phá kỷ lục ----
+    document.getElementById("smash-btn").onclick = () => {
+      const speed = Math.round(55 + Math.random() * 50); // 55-105 km/h (tốc độ bóng pickleball)
+      const player = PLAYERS_POOL[Math.floor(Math.random() * PLAYERS_POOL.length)];
+      const court = 3;
+      animateShuttle(speed);
+      const { broken, prevMax } = SB.recordSmash(speed, player, court);
+      document.getElementById("cur-speed").textContent = speed;
+
+      const note = document.getElementById("record-note");
+      const card = document.getElementById("record-card");
+      if (broken) {
+        note.innerHTML = `<span style="color:var(--color-accent)">🎉 PHÁ KỶ LỤC! ${player} · +${speed - prevMax} km/h</span>`;
+        document.getElementById("cur-speed").style.color = "var(--color-accent)";
+        card.classList.remove("flash"); void card.offsetWidth; card.classList.add("flash");
+        SB.announce(`Kỷ lục mới! ${player} vừa đập bóng ${speed} ki lô mét giờ`);
+        setTimeout(() => showHighlight(player, speed), 500);
+      } else {
+        note.innerHTML = `<span class="muted">Chưa phá kỷ lục (kỷ lục: ${prevMax} km/h)</span>`;
+        document.getElementById("cur-speed").style.color = "var(--color-foreground)";
+      }
+      renderRecord();
+    };
+
+    function animateShuttle(speed) {
+      const sh = document.getElementById("shuttle");
+      document.getElementById("var-idle").style.display = "none";
+      const dur = Math.max(0.35, 1.2 - speed / 400);
+      sh.style.transition = "none"; sh.style.left = "18%"; sh.style.top = "28%";
+      void sh.offsetWidth;
+      sh.style.transition = `left ${dur}s cubic-bezier(.2,.7,.3,1), top ${dur}s cubic-bezier(.2,.7,.3,1)`;
+      sh.style.left = "78%"; sh.style.top = "66%";
+    }
+
+    function showHighlight(player, speed) {
+      const tag = document.getElementById("var-tag");
+      tag.innerHTML = `<span class="live-dot"></span> HIGHLIGHT · ${speed} km/h`;
+      let i = 0;
+      const iv = setInterval(() => { animateShuttle(speed); if (++i >= 3) clearInterval(iv); }, 900);
+    }
+
+    document.getElementById("replay-btn").onclick = () => {
+      const top = SB.topRecord();
+      if (!top) { SB.toast("Chưa có highlight", "Hãy mô phỏng một cú đập trước.", "warn"); return; }
+      showHighlight(top.player, top.speed);
+      SB.toast("Phát lại highlight", `${top.player} · ${top.speed} km/h`, "info");
+    };
+
+    // Khi có check-in mới từ kiosk -> cập nhật xếp người + loa
+    function onUpdate() {
+      renderPlacement(); renderRecord();
+      const s = SB.load();
+      if (s.lastCheckin) {
+        document.getElementById("ann-text").innerHTML =
+          `Mời <strong>${s.lastCheckin.name}</strong> (${SB.LEVELS[s.lastCheckin.level].name}) vào <strong>Sân ${s.lastCheckin.court}</strong>.`;
+      }
+    }
+
+    renderRecord(); renderPlacement(); onUpdate();
+    window.addEventListener("sbadm:update", onUpdate);
+    window.addEventListener("storage", onUpdate);
+  </script>
+</body>
+</html>

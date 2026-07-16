@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Đặt sân — Smart Pickleball</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body class="bg-app">
+  <div id="topbar"></div>
+
+  <main class="container" style="max-width:720px;padding-top:32px;padding-bottom:64px;">
+    <h1 style="font-size:26px;margin-bottom:6px;">Đặt sân online</h1>
+    <p class="muted" style="margin-bottom:20px;">Đăng ký thành viên → chọn sân → thanh toán → đăng ký khuôn mặt → nhận QR/PIN</p>
+
+    <div class="steps" style="margin-bottom:8px;">
+      <div class="step done" id="st0"></div><div class="step" id="st1"></div>
+      <div class="step" id="st2"></div><div class="step" id="st3"></div><div class="step" id="st4"></div>
+    </div>
+    <div class="muted" style="font-size:13px;margin-bottom:20px;" id="step-label">Bước 1/5 · Thành viên</div>
+
+    <!-- ===== STEP 0: Thành viên ===== -->
+    <section class="card card-pad step-panel" data-step="0">
+      <div style="display:flex;gap:8px;margin-bottom:18px;">
+        <button class="btn btn-sm btn-primary" id="tab-new">Thành viên mới</button>
+        <button class="btn btn-sm btn-ghost" id="tab-old">Đã có tài khoản</button>
+      </div>
+
+      <div id="pane-new" class="grid" style="grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="field" style="grid-column:1/3;"><label>Họ và tên</label><input class="input" id="f-name" placeholder="VD: Nguyễn Văn A" /></div>
+        <div class="field"><label>Số điện thoại</label><input class="input" id="f-phone" placeholder="09xxxxxxxx" inputmode="numeric" /></div>
+        <div class="field"><label>Ngày sinh</label><input class="input" id="f-dob" type="date" /></div>
+        <div class="field"><label>Trình độ chơi</label><select class="input" id="f-level"></select></div>
+        <div class="field"><label>Vợt (paddle) hay dùng</label><select class="input" id="f-racket"></select></div>
+      </div>
+
+      <div id="pane-old" style="display:none;">
+        <div class="field"><label>Chọn thành viên</label><select class="input" id="f-existing"></select></div>
+        <div class="muted" id="existing-info" style="font-size:13px;margin-top:10px;"></div>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;margin-top:20px;">
+        <button class="btn btn-primary" id="next0">Tiếp tục</button>
+      </div>
+    </section>
+
+    <!-- ===== STEP 1: Chọn sân/giờ ===== -->
+    <section class="card card-pad step-panel" data-step="1" style="display:none;">
+      <div class="grid" style="grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="field"><label>Ngày chơi</label><input class="input" id="b-date" type="date" /></div>
+        <div class="field"><label>Thời lượng</label>
+          <select class="input" id="b-dur"><option value="60">60 phút · 120.000đ</option><option value="90" selected>90 phút · 180.000đ</option></select>
+        </div>
+      </div>
+      <div class="field" style="margin-top:14px;"><label>Khung giờ</label>
+        <div id="b-slots" class="grid" style="grid-template-columns:repeat(4,1fr);gap:8px;"></div>
+      </div>
+      <div class="field" style="margin-top:14px;"><label>Chọn sân</label>
+        <div id="b-courts" class="grid" style="grid-template-columns:repeat(3,1fr);gap:8px;"></div>
+      </div>
+      <div class="field" style="margin-top:14px;">
+        <label>Gói buổi (tuỳ chọn — nạp thêm số buổi để check-in nhanh)</label>
+        <select class="input" id="b-pack">
+          <option value="0">Không mua gói</option>
+          <option value="5">Gói 5 buổi · 800.000đ</option>
+          <option value="10">Gói 10 buổi · 1.500.000đ</option>
+        </select>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:20px;">
+        <button class="btn btn-ghost" onclick="goto(0)">Quay lại</button>
+        <button class="btn btn-primary" id="next1">Tiếp tục</button>
+      </div>
+    </section>
+
+    <!-- ===== STEP 2: Thanh toán ===== -->
+    <section class="card card-pad step-panel" data-step="2" style="display:none;">
+      <h3 style="margin-top:0;">Xác nhận &amp; thanh toán</h3>
+      <div id="pay-summary" class="grid" style="gap:10px;"></div>
+      <hr class="divider" />
+      <div class="field"><label>Phương thức thanh toán</label>
+        <div class="grid" style="grid-template-columns:repeat(3,1fr);gap:8px;" id="pay-methods"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:20px;align-items:center;">
+        <button class="btn btn-ghost" onclick="goto(1)">Quay lại</button>
+        <button class="btn btn-primary" id="pay-btn"></button>
+      </div>
+    </section>
+
+    <!-- ===== STEP 3: Đăng ký khuôn mặt ===== -->
+    <section class="card card-pad step-panel" data-step="3" style="display:none;text-align:center;">
+      <h3 style="margin-top:0;">Đăng ký khuôn mặt</h3>
+      <p class="muted">Để check-in tự động khi đến sân. (Mô phỏng camera — bấm nút để "quét")</p>
+      <div class="scanner" id="face-box" style="max-width:320px;margin:16px auto;aspect-ratio:1;background:radial-gradient(circle at 50% 40%, #1e293b, #0b1120);">
+        <div class="face-frame"><span class="tl"></span><span class="tr"></span><span class="bl"></span><span class="br"></span></div>
+        <div class="scanline" style="display:none;" id="face-scanline"></div>
+        <div id="face-emoji" style="position:absolute;inset:0;display:grid;place-items:center;font-size:96px;opacity:.9;">🙂</div>
+      </div>
+      <div id="face-status" class="muted" style="min-height:24px;"></div>
+      <div style="display:flex;justify-content:center;gap:10px;margin-top:12px;">
+        <button class="btn btn-ghost" id="skip-face">Bỏ qua</button>
+        <button class="btn btn-primary" id="scan-face"></button>
+      </div>
+    </section>
+
+    <!-- ===== STEP 4: Xác nhận QR/PIN ===== -->
+    <section class="card card-pad step-panel" data-step="4" style="display:none;text-align:center;">
+      <div style="color:var(--color-accent);display:flex;justify-content:center;margin-bottom:8px;" id="ok-icon"></div>
+      <h3 style="margin-top:0;">Đặt sân thành công!</h3>
+      <p class="muted" id="ok-sub"></p>
+      <div class="grid" style="grid-template-columns:1fr 1fr;gap:16px;max-width:520px;margin:20px auto;">
+        <div class="card card-pad" style="text-align:center;">
+          <div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.06em;">Mã QR check-in</div>
+          <div id="qrbox" style="margin:12px auto;width:150px;height:150px;background:#fff;border-radius:12px;padding:10px;"></div>
+          <div class="num" id="qr-code" style="font-size:12px;color:var(--color-muted-fg)"></div>
+        </div>
+        <div class="card card-pad" style="text-align:center;display:flex;flex-direction:column;justify-content:center;">
+          <div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.06em;">Mã PIN dự phòng</div>
+          <div class="num" id="pin-code" style="font-size:44px;font-weight:700;color:var(--color-accent);letter-spacing:.15em;margin:10px 0;"></div>
+          <div class="muted" style="font-size:13px;">Nhập tại kiosk nếu quét mặt lỗi</div>
+        </div>
+      </div>
+      <div id="booking-recap" class="card card-pad" style="text-align:left;max-width:520px;margin:0 auto 18px;"></div>
+      <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
+        <a href="checkin-kiosk.html" class="btn btn-primary">Thử check-in tại kiosk</a>
+        <a href="admin-dashboard.html" class="btn btn-ghost">Xem trên dashboard</a>
+        <button class="btn btn-ghost" onclick="location.reload()">Đặt sân khác</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="assets/app.js"></script>
+  <script>
+    document.getElementById("topbar").innerHTML = SB.topbar("app-booking.html");
+    document.getElementById("ok-icon").innerHTML = SB.icon("check", 48);
+
+    // ---- State của luồng đặt sân ----
+    let cur = 0;
+    let draft = { mode: "new", memberId: null, court: null, slotHour: null, date: null, dur: 90, pack: 0, method: "VNPay", face: false };
+
+    const stepLabels = ["Thành viên", "Chọn sân", "Thanh toán", "Khuôn mặt", "Hoàn tất"];
+    function goto(n) {
+      cur = n;
+      document.querySelectorAll(".step-panel").forEach(p => p.style.display = (+p.dataset.step === n) ? "block" : "none");
+      for (let i = 0; i < 5; i++) document.getElementById("st" + i).classList.toggle("done", i <= n);
+      document.getElementById("step-label").textContent = `Bước ${n + 1}/5 · ${stepLabels[n]}`;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    // ---- Fill selects ----
+    const lvSel = document.getElementById("f-level");
+    Object.entries(SB.LEVELS).forEach(([k, v]) => lvSel.insertAdjacentHTML("beforeend", `<option value="${k}">${v.name}</option>`));
+    lvSel.value = "tb";
+    const rkSel = document.getElementById("f-racket");
+    SB.RACKETS.forEach(r => rkSel.insertAdjacentHTML("beforeend", `<option>${r}</option>`));
+
+    const exSel = document.getElementById("f-existing");
+    function fillExisting() {
+      const s = SB.load();
+      exSel.innerHTML = s.members.map(m => `<option value="${m.id}">${m.name} · ${m.phone}</option>`).join("");
+      showExisting();
+    }
+    function showExisting() {
+      const s = SB.load();
+      const m = s.members.find(x => x.id === exSel.value);
+      if (m) document.getElementById("existing-info").innerHTML =
+        `Trình độ: <strong>${SB.LEVELS[m.level].name}</strong> · Vợt: ${m.racket} · Còn <strong>${m.sessionsLeft}</strong> buổi`;
+    }
+    exSel.addEventListener("change", showExisting);
+    fillExisting();
+
+    // Tabs new/old
+    document.getElementById("tab-new").onclick = () => setMode("new");
+    document.getElementById("tab-old").onclick = () => setMode("old");
+    function setMode(m) {
+      draft.mode = m;
+      document.getElementById("tab-new").className = "btn btn-sm " + (m === "new" ? "btn-primary" : "btn-ghost");
+      document.getElementById("tab-old").className = "btn btn-sm " + (m === "old" ? "btn-primary" : "btn-ghost");
+      document.getElementById("pane-new").style.display = m === "new" ? "grid" : "none";
+      document.getElementById("pane-old").style.display = m === "old" ? "block" : "none";
+    }
+
+    // ---- Step 0 -> 1 ----
+    document.getElementById("next0").onclick = () => {
+      if (draft.mode === "new") {
+        const name = document.getElementById("f-name").value.trim();
+        const phone = document.getElementById("f-phone").value.trim();
+        const dob = document.getElementById("f-dob").value;
+        if (!name || phone.length < 9) { SB.toast("Thiếu thông tin", "Nhập họ tên và số điện thoại hợp lệ.", "err"); return; }
+        const m = SB.registerMember({ name, phone, dob, level: lvSel.value, racket: rkSel.value });
+        draft.memberId = m.id;
+        SB.toast("Đã tạo thành viên", name + " · " + SB.LEVELS[m.level].name, "ok");
+      } else {
+        draft.memberId = exSel.value;
+      }
+      buildSlots(); buildCourts(); setDefaultDate();
+      goto(1);
+    };
+
+    // ---- Step 1: slots + courts ----
+    function setDefaultDate() {
+      const d = new Date();
+      const iso = d.toISOString().slice(0, 10);
+      document.getElementById("b-date").value = iso;
+      draft.date = iso;
+    }
+    document.getElementById("b-date").addEventListener("change", e => draft.date = e.target.value);
+    document.getElementById("b-dur").addEventListener("change", e => draft.dur = +e.target.value);
+
+    function buildSlots() {
+      const now = new Date().getHours();
+      const hours = [];
+      for (let h = Math.max(6, now); h <= 22; h++) hours.push(h);
+      document.getElementById("b-slots").innerHTML = hours.map(h =>
+        `<button class="btn btn-sm btn-ghost slot" data-h="${h}">${SB.pad(h)}:00</button>`).join("");
+      document.querySelectorAll(".slot").forEach(b => b.onclick = () => {
+        draft.slotHour = +b.dataset.h;
+        document.querySelectorAll(".slot").forEach(x => x.className = "btn btn-sm btn-ghost slot");
+        b.className = "btn btn-sm btn-primary slot";
+      });
+    }
+    function buildCourts() {
+      const s = SB.load();
+      document.getElementById("b-courts").innerHTML = s.courts.map(c =>
+        `<button class="btn btn-sm btn-ghost crt" data-c="${c.id}">${c.name}</button>`).join("");
+      document.querySelectorAll(".crt").forEach(b => b.onclick = () => {
+        draft.court = +b.dataset.c;
+        document.querySelectorAll(".crt").forEach(x => x.className = "btn btn-sm btn-ghost crt");
+        b.className = "btn btn-sm btn-primary crt";
+      });
+    }
+    document.getElementById("b-pack").addEventListener("change", e => draft.pack = +e.target.value);
+
+    document.getElementById("next1").onclick = () => {
+      if (draft.slotHour == null || draft.court == null) { SB.toast("Chưa chọn đủ", "Chọn khung giờ và sân.", "err"); return; }
+      buildPay(); goto(2);
+    };
+
+    // ---- Step 2: payment ----
+    const PACK_PRICE = { 0: 0, 5: 800000, 10: 1500000 };
+    function courtFee() { return draft.dur === 90 ? 180000 : 120000; }
+    function total() { return courtFee() + PACK_PRICE[draft.pack]; }
+
+    function buildPay() {
+      const s = SB.load();
+      const m = s.members.find(x => x.id === draft.memberId);
+      document.getElementById("pay-summary").innerHTML = [
+        ["Thành viên", m.name + " · " + SB.LEVELS[m.level].name],
+        ["Ngày", SB.fmtDate(new Date(draft.date))],
+        ["Khung giờ", (function(){ const st=new Date(draft.date); st.setHours(draft.slotHour,0,0,0); const en=new Date(st.getTime()+draft.dur*60000); return SB.fmtTime(st)+" – "+SB.fmtTime(en); })()],
+        ["Sân", "Sân " + draft.court],
+        ["Phí sân (" + draft.dur + "p)", SB.fmtVND(courtFee())],
+        ...(draft.pack ? [["Gói " + draft.pack + " buổi", SB.fmtVND(PACK_PRICE[draft.pack])]] : []),
+      ].map(([k, v]) => `<div style="display:flex;justify-content:space-between;"><span class="muted">${k}</span><span style="font-weight:600">${v}</span></div>`).join("")
+        + `<hr class="divider"/><div style="display:flex;justify-content:space-between;font-size:18px;"><span>Tổng cộng</span><span class="num" style="color:var(--color-accent);font-weight:700">${SB.fmtVND(total())}</span></div>`;
+
+      const methods = ["VNPay", "Momo", "Thẻ ngân hàng"];
+      document.getElementById("pay-methods").innerHTML = methods.map((mth, i) =>
+        `<button class="btn btn-sm ${i === 0 ? "btn-primary" : "btn-ghost"} pm" data-m="${mth}">${mth}</button>`).join("");
+      document.querySelectorAll(".pm").forEach(b => b.onclick = () => {
+        draft.method = b.dataset.m;
+        document.querySelectorAll(".pm").forEach(x => x.className = "btn btn-sm btn-ghost pm");
+        b.className = "btn btn-sm btn-primary pm";
+      });
+      document.getElementById("pay-btn").innerHTML = SB.icon("money", 18) + " Thanh toán " + SB.fmtVND(total());
+    }
+
+    let lastBooking = null;
+    document.getElementById("pay-btn").onclick = () => {
+      const btn = document.getElementById("pay-btn");
+      btn.disabled = true; btn.innerHTML = "Đang xử lý " + draft.method + "...";
+      setTimeout(() => {
+        const start = new Date(draft.date); start.setHours(draft.slotHour, 0, 0, 0);
+        lastBooking = SB.createBooking({
+          memberId: draft.memberId, court: draft.court,
+          startISO: start.toISOString(), durationMin: draft.dur, sessionsPack: draft.pack,
+        });
+        SB.toast("Thanh toán thành công", SB.fmtVND(total()) + " qua " + draft.method, "ok");
+        goto(3);
+      }, 900);
+    };
+
+    // ---- Step 3: face ----
+    document.getElementById("scan-face").innerHTML = SB.icon("scan", 18) + " Bắt đầu quét";
+    document.getElementById("scan-face").onclick = () => {
+      const sl = document.getElementById("face-scanline");
+      sl.style.display = "block";
+      document.getElementById("face-status").textContent = "Đang phân tích khuôn mặt...";
+      document.getElementById("scan-face").disabled = true;
+      setTimeout(() => {
+        sl.style.display = "none";
+        document.getElementById("face-status").innerHTML = '<span style="color:var(--color-accent)">✓ Đã đăng ký khuôn mặt thành công</span>';
+        document.getElementById("face-box").style.borderColor = "var(--color-accent)";
+        draft.face = true;
+        SB.toast("Khuôn mặt đã lưu", "Bạn có thể check-in tự động khi đến sân.", "ok");
+        setTimeout(finish, 700);
+      }, 2200);
+    };
+    document.getElementById("skip-face").onclick = finish;
+
+    // ---- Step 4: recap + QR/PIN ----
+    function finish() {
+      const s = SB.load();
+      const m = s.members.find(x => x.id === draft.memberId);
+      document.getElementById("ok-sub").textContent = `${m.name}, hẹn gặp bạn tại Sân ${lastBooking.court}!`;
+      document.getElementById("pin-code").textContent = lastBooking.pin;
+      document.getElementById("qr-code").textContent = lastBooking.qr;
+      document.getElementById("qrbox").innerHTML = fakeQR(lastBooking.qr);
+      document.getElementById("booking-recap").innerHTML = [
+        ["Sân", "Sân " + lastBooking.court],
+        ["Ngày", SB.fmtDate(new Date(lastBooking.start))],
+        ["Giờ", SB.fmtTime(new Date(lastBooking.start)) + " – " + SB.fmtTime(new Date(lastBooking.end))],
+        ["Khuôn mặt", draft.face ? "Đã đăng ký" : "Chưa (dùng PIN)"],
+        ["Số buổi còn lại", m.sessionsLeft + " buổi"],
+      ].map(([k, v]) => `<div style="display:flex;justify-content:space-between;padding:4px 0;"><span class="muted">${k}</span><span style="font-weight:600">${v}</span></div>`).join("");
+      goto(4);
+    }
+
+    // QR giả lập bằng lưới ô vuông từ chuỗi mã
+    function fakeQR(seed) {
+      let h = 0; for (const ch of seed) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+      const n = 11; let cells = "";
+      for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+        h = (h * 1103515245 + 12345) & 0x7fffffff;
+        const on = (h >> 8) & 1;
+        const corner = (x < 3 && y < 3) || (x > n - 4 && y < 3) || (x < 3 && y > n - 4);
+        if (on || corner) cells += `<rect x="${x}" y="${y}" width="1" height="1"/>`;
+      }
+      return `<svg viewBox="0 0 ${n} ${n}" width="100%" height="100%" fill="#0f172a" shape-rendering="crispEdges">${cells}</svg>`;
+    }
+
+    setMode("new");
+    goto(0);
+  </script>
+</body>
+</html>

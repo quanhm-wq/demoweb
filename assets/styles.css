@@ -1,0 +1,218 @@
+/* ============================================================
+   Smart Badminton — Design System (Dark Mode OLED)
+   Nguồn: skill UI/UX Pro Max
+   ============================================================ */
+:root {
+  --color-primary: #1E293B;
+  --color-on-primary: #FFFFFF;
+  --color-secondary: #334155;
+  --color-accent: #22C55E;      /* xanh lá — trạng thái/thể thao */
+  --color-accent-dim: #16A34A;
+  --color-background: #0F172A;
+  --color-surface: #131C31;
+  --color-foreground: #F8FAFC;
+  --color-muted: #272F42;
+  --color-muted-fg: #94A3B8;
+  --color-border: #334155;
+  --color-destructive: #EF4444;
+  --color-warning: #F59E0B;
+  --color-info: #38BDF8;
+
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+  --space-5: 24px; --space-6: 32px; --space-8: 48px; --space-10: 64px;
+
+  --radius: 14px;
+  --radius-sm: 8px;
+  --radius-lg: 22px;
+  --ring: 0 0 0 3px rgba(34, 197, 94, 0.35);
+  --shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.6);
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: 'Fira Sans', system-ui, -apple-system, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-mono, .num { font-family: 'Fira Code', ui-monospace, monospace; }
+
+/* Nền có sắc độ nhẹ để không phẳng bệt */
+.bg-app {
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(34,197,94,0.08), transparent 60%),
+    radial-gradient(900px 500px at -10% 10%, rgba(56,189,248,0.06), transparent 55%),
+    var(--color-background);
+  min-height: 100vh;
+}
+
+/* ---------- Component: Card ---------- */
+.card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.card-pad { padding: var(--space-5); }
+
+/* ---------- Component: Button ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: var(--space-2);
+  min-height: 44px; padding: 0 var(--space-5);
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  font-weight: 600; font-size: 15px;
+  cursor: pointer;
+  transition: transform .15s ease, background .2s ease, border-color .2s ease, opacity .2s ease;
+  text-decoration: none;
+}
+.btn:active { transform: translateY(1px); }
+.btn:focus-visible { outline: none; box-shadow: var(--ring); }
+.btn-primary { background: var(--color-accent); color: #052e16; }
+.btn-primary:hover { background: var(--color-accent-dim); }
+.btn-ghost { background: transparent; color: var(--color-foreground); border-color: var(--color-border); }
+.btn-ghost:hover { background: var(--color-muted); }
+.btn-danger { background: var(--color-destructive); color: #fff; }
+.btn-block { width: 100%; }
+.btn-sm { min-height: 36px; padding: 0 var(--space-3); font-size: 13px; }
+
+/* ---------- Component: Input ---------- */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 13px; color: var(--color-muted-fg); font-weight: 500; }
+.input, select.input {
+  width: 100%; min-height: 44px; padding: 0 var(--space-3);
+  background: var(--color-muted); color: var(--color-foreground);
+  border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  font-size: 15px; font-family: inherit;
+}
+.input:focus, select.input:focus { outline: none; box-shadow: var(--ring); border-color: var(--color-accent); }
+.input::placeholder { color: #64748B; }
+
+/* ---------- Chips / badges ---------- */
+.badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 600; font-family: 'Fira Code', monospace;
+  border: 1px solid var(--color-border); background: var(--color-muted);
+}
+.badge-green { color: #86efac; border-color: rgba(34,197,94,.4); background: rgba(34,197,94,.12); }
+.badge-red   { color: #fca5a5; border-color: rgba(239,68,68,.4); background: rgba(239,68,68,.12); }
+.badge-amber { color: #fcd34d; border-color: rgba(245,158,11,.4); background: rgba(245,158,11,.12); }
+.badge-blue  { color: #7dd3fc; border-color: rgba(56,189,248,.4); background: rgba(56,189,248,.12); }
+.badge-slate { color: var(--color-muted-fg); }
+
+/* Trình độ */
+.level-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.lv-newbie { background: #64748B; }
+.lv-y      { background: #38BDF8; }
+.lv-tb     { background: #22C55E; }
+.lv-tbc    { background: #F59E0B; }
+.lv-pro    { background: #EF4444; }
+
+/* ---------- Layout helpers ---------- */
+.container { width: 100%; max-width: 1240px; margin: 0 auto; padding: 0 var(--space-4); }
+.grid { display: grid; gap: var(--space-4); }
+.muted { color: var(--color-muted-fg); }
+.divider { height: 1px; background: var(--color-border); border: 0; margin: var(--space-4) 0; }
+
+/* Topbar dùng chung */
+.topbar {
+  position: sticky; top: 0; z-index: 40;
+  backdrop-filter: blur(10px);
+  background: rgba(15,23,42,0.75);
+  border-bottom: 1px solid var(--color-border);
+}
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: .2px; }
+.brand-mark {
+  width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center;
+  background: linear-gradient(135deg, var(--color-accent), var(--color-info));
+  color: #052e16; font-weight: 800;
+}
+
+/* Stat tile */
+.stat { display: flex; flex-direction: column; gap: 4px; }
+.stat .val { font-family: 'Fira Code', monospace; font-size: 28px; font-weight: 700; line-height: 1; }
+.stat .lbl { font-size: 12px; color: var(--color-muted-fg); text-transform: uppercase; letter-spacing: .06em; }
+
+/* Court cell */
+.court {
+  border: 1px solid var(--color-border); border-radius: var(--radius);
+  padding: var(--space-4); position: relative; overflow: hidden;
+  transition: border-color .2s ease, transform .15s ease;
+}
+.court:hover { transform: translateY(-2px); }
+.court.occupied { border-color: rgba(34,197,94,.5); }
+.court.free     { border-color: var(--color-border); opacity: .8; }
+.court.overdue  { border-color: rgba(239,68,68,.6); }
+
+/* Toast / loa */
+.toast-wrap { position: fixed; right: 16px; bottom: 16px; z-index: 100; display: flex; flex-direction: column; gap: 10px; max-width: 360px; }
+.toast {
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-accent);
+  border-radius: 10px; padding: 12px 14px; box-shadow: var(--shadow);
+  display: flex; gap: 10px; align-items: flex-start;
+  animation: slidein .25s ease;
+}
+@keyframes slidein { from { transform: translateX(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* Pulse cho record / live */
+.pulse { position: relative; }
+.pulse::before {
+  content: ''; position: absolute; inset: -4px; border-radius: inherit;
+  box-shadow: 0 0 0 0 rgba(34,197,94,.5); animation: pulse 1.8s infinite;
+}
+@keyframes pulse { 70% { box-shadow: 0 0 0 12px rgba(34,197,94,0); } 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); } }
+
+.live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-destructive); display: inline-block; animation: blink 1.2s infinite; }
+@keyframes blink { 50% { opacity: .3; } }
+
+/* Scanner (kiosk) */
+.scanner { position: relative; border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--color-border); }
+.scanline {
+  position: absolute; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, transparent, var(--color-accent), transparent);
+  box-shadow: 0 0 16px var(--color-accent);
+  animation: scan 2.4s ease-in-out infinite;
+}
+@keyframes scan { 0%,100% { top: 6%; } 50% { top: 92%; } }
+.face-frame { position: absolute; inset: 12%; border: 2px dashed rgba(34,197,94,.7); border-radius: 20px; }
+.face-frame span { position: absolute; width: 22px; height: 22px; border: 3px solid var(--color-accent); }
+.face-frame .tl { top: -3px; left: -3px; border-right: 0; border-bottom: 0; border-radius: 6px 0 0 0; }
+.face-frame .tr { top: -3px; right: -3px; border-left: 0; border-bottom: 0; border-radius: 0 6px 0 0; }
+.face-frame .bl { bottom: -3px; left: -3px; border-right: 0; border-top: 0; border-radius: 0 0 0 6px; }
+.face-frame .br { bottom: -3px; right: -3px; border-left: 0; border-top: 0; border-radius: 0 0 6px 0; }
+
+/* Table */
+table.tbl { width: 100%; border-collapse: collapse; }
+.tbl th, .tbl td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--color-border); font-size: 14px; }
+.tbl th { color: var(--color-muted-fg); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
+.tbl tbody tr:hover { background: rgba(255,255,255,0.02); }
+
+/* Steps */
+.steps { display: flex; gap: 8px; align-items: center; }
+.step { flex: 1; height: 4px; border-radius: 999px; background: var(--color-muted); }
+.step.done { background: var(--color-accent); }
+
+/* Utility spacing/typography that pairs with Tailwind */
+.hoverable { transition: transform .15s ease, border-color .2s ease; }
+.hoverable:hover { transform: translateY(-2px); }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+
+/* Cột phải cho dashboard cuộn riêng khi cần */
+.scroll-y { overflow-y: auto; }
+
+a { color: inherit; }
+.link { color: var(--color-accent); text-decoration: none; }
+.link:hover { text-decoration: underline; }

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Phân tích AI trận đấu — Smart Pickleball</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body class="bg-app">
+  <div id="topbar"></div>
+
+  <main class="container" style="max-width:1240px;padding-top:24px;padding-bottom:56px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:18px;">
+      <div>
+        <h1 style="font-size:24px;margin:0;">Phân tích trận đấu bằng AI</h1>
+        <p class="muted" style="margin:4px 0 0;">Camera 4K · 60fps · thị giác máy tính — <span id="match-meta"></span></p>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <select class="input" id="court-sel" style="height:40px;width:auto;"></select>
+        <button class="btn btn-sm btn-primary" id="reanalyze"></button>
+      </div>
+    </div>
+
+    <!-- KPI hàng -->
+    <div class="grid" id="kpis" style="grid-template-columns:repeat(6,1fr);margin-bottom:20px;"></div>
+
+    <div class="grid" style="grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
+      <!-- Heatmap -->
+      <div class="card card-pad">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div style="font-weight:600;">Heatmap di chuyển</div>
+          <div style="display:flex;gap:6px;" id="hm-players"></div>
+        </div>
+        <div style="position:relative;aspect-ratio:16/10;border:1px solid var(--color-border);border-radius:12px;overflow:hidden;background:#0b1120;">
+          <canvas id="heatmap" style="position:absolute;inset:0;width:100%;height:100%;"></canvas>
+          <!-- vạch sân -->
+          <div style="position:absolute;inset:8%;border:2px solid rgba(148,163,184,.4);border-radius:3px;pointer-events:none;">
+            <div style="position:absolute;left:0;right:0;top:50%;height:2px;background:rgba(34,197,94,.55);"></div>
+            <div style="position:absolute;top:0;bottom:0;left:50%;width:2px;background:rgba(148,163,184,.3);"></div>
+          </div>
+        </div>
+        <div class="muted" style="font-size:12px;margin-top:8px;">Vùng nóng = nơi người chơi đứng/di chuyển nhiều nhất</div>
+      </div>
+
+      <!-- Rally theo thời gian -->
+      <div class="card card-pad">
+        <div style="font-weight:600;margin-bottom:12px;">Thời lượng &amp; nhịp độ các rally</div>
+        <canvas id="rally-chart" height="150"></canvas>
+        <hr class="divider"/>
+        <div class="grid" style="grid-template-columns:1fr 1fr;gap:12px;" id="tempo-stats"></div>
+      </div>
+    </div>
+
+    <!-- Quãng đường + nghỉ -->
+    <div class="grid" style="grid-template-columns:1fr 1fr;gap:20px;margin-top:20px;align-items:start;">
+      <div class="card card-pad">
+        <div style="font-weight:600;margin-bottom:12px;">Quãng đường di chuyển từng người</div>
+        <canvas id="dist-chart" height="150"></canvas>
+      </div>
+      <div class="card card-pad">
+        <div style="font-weight:600;margin-bottom:12px;">Phân bổ thời gian trận đấu</div>
+        <canvas id="time-chart" height="150"></canvas>
+        <div id="time-legend" class="muted" style="font-size:13px;margin-top:10px;"></div>
+      </div>
+    </div>
+
+    <!-- Highlights -->
+    <div class="card card-pad" style="margin-top:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div style="font-weight:600;">Highlight các pha bóng dài (AI tự trích xuất)</div>
+        <span class="badge badge-blue">Auto-clip</span>
+      </div>
+      <div class="grid" id="highlights" style="grid-template-columns:repeat(3,1fr);"></div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <script src="assets/app.js"></script>
+  <script>
+    document.getElementById("topbar").innerHTML = SB.topbar("match-analytics.html");
+    document.getElementById("reanalyze").innerHTML = SB.icon("chart", 16) + " Phân tích lại";
+
+    // ---- Sinh dữ liệu phân tích (mô phỏng CV/AI) từ seed ổn định theo sân ----
+    function rng(seed) { let s = seed % 2147483647; if (s <= 0) s += 2147483646; return () => (s = s * 16807 % 2147483647) / 2147483647; }
+
+    function analyze(courtId) {
+      const s = SB.load();
+      const court = s.courts.find(c => c.id === courtId) || s.courts[0];
+      const names = (court.players.length ? court.players.map(p => p.name) : ["Người chơi A", "Người chơi B"]).slice(0, 2);
+      if (names.length < 2) names.push("Đối thủ");
+      const r = rng(courtId * 97 + 13);
+
+      const rallies = 18 + Math.floor(r() * 22); // 18-40 rally
+      const rallyData = Array.from({ length: rallies }, () => Math.round(4 + r() * 34)); // giây/rally
+      const totalRallySec = rallyData.reduce((a, b) => a + b, 0);
+      const longest = Math.max(...rallyData);
+      const matchMin = Math.round(totalRallySec / 60 / 0.45); // rally ~45% thời gian
+      const restSec = Math.round(totalRallySec / 0.45 * 0.55);
+      const shuttlesPerRally = rallyData.map(d => Math.max(2, Math.round(d / 1.4)));
+      const tempo = (shuttlesPerRally.reduce((a, b) => a + b, 0) / rallies).toFixed(1);
+
+      const players = names.map((n, i) => ({
+        name: n,
+        distance: (2.2 + r() * 2.6).toFixed(2),   // km
+        avgSpeed: (7 + r() * 5).toFixed(1),        // km/h
+        calories: Math.round(320 + r() * 260),
+      }));
+
+      // highlights: các rally dài nhất
+      const idx = rallyData.map((d, i) => [d, i]).sort((a, b) => b[0] - a[0]).slice(0, 3);
+      const highlights = idx.map(([d, i]) => ({
+        rally: i + 1, dur: d, shuttles: shuttlesPerRally[i],
+        by: names[i % 2], speed: Math.round(55 + r() * 45),
+      }));
+
+      return { court, names, rallies, rallyData, totalRallySec, longest, matchMin, restSec, tempo, players, highlights };
+    }
+
+    let charts = {};
+    function destroyCharts() { Object.values(charts).forEach(c => c && c.destroy()); charts = {}; }
+
+    function render(courtId) {
+      const a = analyze(courtId);
+      document.getElementById("match-meta").textContent = `${a.court.name} · ${a.names.join(" vs ")} · ${a.matchMin} phút`;
+
+      // KPIs
+      document.getElementById("kpis").innerHTML = [
+        [a.rallies, "Số rally", "shuttle"],
+        [Math.round(a.totalRallySec / a.rallies) + "s", "TB mỗi rally", "timer"],
+        [a.longest + "s", "Rally dài nhất", "bolt"],
+        [a.tempo, "Bóng/rally (nhịp độ)", "chart"],
+        [Math.round(a.restSec / 60) + "p", "Thời gian nghỉ", "clock"],
+        [a.matchMin + "p", "Tổng thời lượng", "play"],
+      ].map(([v, l, ic]) =>
+        `<div class="card card-pad">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+            <div class="stat"><span class="val">${v}</span><span class="lbl">${l}</span></div>
+            <span class="muted">${SB.icon(ic, 18)}</span>
+          </div>
+        </div>`).join("");
+
+      drawHeatmap(courtId);
+      renderHmPlayers(a);
+
+      // Rally chart
+      destroyCharts();
+      charts.rally = new Chart(document.getElementById("rally-chart"), {
+        type: "bar",
+        data: {
+          labels: a.rallyData.map((_, i) => i + 1),
+          datasets: [{ label: "Giây", data: a.rallyData, backgroundColor: a.rallyData.map(d => d === a.longest ? "#22C55E" : "#334155"), borderRadius: 4 }],
+        },
+        options: {
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.raw + " giây · " + Math.max(2, Math.round(c.raw / 1.4)) + " lần chạm bóng" } } },
+          scales: { x: { grid: { display: false }, ticks: { color: "#64748B", maxRotation: 0 }, title: { display: true, text: "Rally #", color: "#64748B" } }, y: { grid: { color: "#1e293b" }, ticks: { color: "#94A3B8" } } },
+        },
+      });
+
+      document.getElementById("tempo-stats").innerHTML = [
+        ["Nhịp độ trung bình", a.tempo + " bóng/rally"],
+        ["Rally dài nhất", a.longest + " giây"],
+        ["Tổng thời gian bóng sống", Math.round(a.totalRallySec / 60) + " phút"],
+        ["Tỉ lệ vận động", Math.round(a.totalRallySec / (a.totalRallySec + a.restSec) * 100) + "%"],
+      ].map(([k, v]) => `<div class="stat"><span class="val" style="font-size:18px">${v}</span><span class="lbl">${k}</span></div>`).join("");
+
+      // Distance chart
+      charts.dist = new Chart(document.getElementById("dist-chart"), {
+        type: "bar",
+        data: {
+          labels: a.players.map(p => p.name),
+          datasets: [
+            { label: "Quãng đường (km)", data: a.players.map(p => +p.distance), backgroundColor: "#22C55E", borderRadius: 6 },
+            { label: "Tốc độ TB (km/h)", data: a.players.map(p => +p.avgSpeed), backgroundColor: "#38BDF8", borderRadius: 6 },
+          ],
+        },
+        options: {
+          indexAxis: "y",
+          plugins: { legend: { labels: { color: "#94A3B8" } } },
+          scales: { x: { grid: { color: "#1e293b" }, ticks: { color: "#94A3B8" } }, y: { grid: { display: false }, ticks: { color: "#F8FAFC" } } },
+        },
+      });
+
+      // Time distribution (doughnut)
+      const playSec = a.totalRallySec, rest = a.restSec;
+      charts.time = new Chart(document.getElementById("time-chart"), {
+        type: "doughnut",
+        data: { labels: ["Bóng sống", "Nghỉ giữa rally"], datasets: [{ data: [playSec, rest], backgroundColor: ["#22C55E", "#334155"], borderColor: "#0F172A", borderWidth: 3 }] },
+        options: { plugins: { legend: { display: false } }, cutout: "62%" },
+      });
+      document.getElementById("time-legend").innerHTML =
+        `<span><span class="level-dot" style="background:#22c55e"></span> Bóng sống: <strong>${Math.round(playSec / 60)}p ${playSec % 60}s</strong></span> &nbsp;·&nbsp;
+         <span><span class="level-dot" style="background:#334155"></span> Nghỉ: <strong>${Math.round(rest / 60)}p ${rest % 60}s</strong></span>`;
+
+      // Highlights
+      document.getElementById("highlights").innerHTML = a.highlights.map((h, i) =>
+        `<div class="card card-pad hoverable">
+          <div style="position:relative;aspect-ratio:16/9;border-radius:10px;background:linear-gradient(135deg,#0b1120,#16233c);display:grid;place-items:center;margin-bottom:10px;overflow:hidden;">
+            <span style="color:var(--color-accent)">${SB.icon("play", 34)}</span>
+            <span class="badge badge-red" style="position:absolute;left:8px;top:8px;">${h.dur}s</span>
+            <span class="num" style="position:absolute;right:8px;bottom:8px;font-size:12px;color:var(--color-muted-fg)">HL_${SB.pad(i + 1)}.mp4</span>
+          </div>
+          <div style="font-weight:600;">Rally #${h.rally} · ${h.shuttles} lần chạm bóng</div>
+          <div class="muted" style="font-size:13px;">Kết thúc bởi ${h.by} · cú cuối ${h.speed} km/h</div>
+        </div>`).join("");
+    }
+
+    function renderHmPlayers(a) {
+      document.getElementById("hm-players").innerHTML = a.players.map((p, i) =>
+        `<span class="badge" style="font-size:12px;"><span class="level-dot" style="background:${i === 0 ? "#22c55e" : "#38bdf8"}"></span> ${p.name}</span>`).join("");
+    }
+
+    // Heatmap trên canvas
+    function drawHeatmap(courtId) {
+      const cv = document.getElementById("heatmap");
+      const ctx = cv.getContext("2d");
+      const W = cv.width = cv.clientWidth, H = cv.height = cv.clientHeight;
+      ctx.clearRect(0, 0, W, H);
+      const r = rng(courtId * 131 + 7);
+      // 2 người: mỗi người 1 nửa sân, tạo các điểm nóng
+      [[0.30, "#22c55e"], [0.70, "#38bdf8"]].forEach(([cx, col]) => {
+        const pts = 70;
+        for (let i = 0; i < pts; i++) {
+          const x = (cx + (r() - 0.5) * 0.34) * W;
+          const y = (0.5 + (r() - 0.5) * 0.7) * H;
+          const rad = 26 + r() * 34;
+          const g = ctx.createRadialGradient(x, y, 0, x, y, rad);
+          const c = col === "#22c55e" ? "34,197,94" : "56,189,248";
+          g.addColorStop(0, `rgba(${c},0.12)`); g.addColorStop(1, `rgba(${c},0)`);
+          ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, rad, 0, 7); ctx.fill();
+        }
+      });
+    }
+
+    // Court selector
+    const sel = document.getElementById("court-sel");
+    function fillSel() {
+      const s = SB.load();
+      sel.innerHTML = s.courts.map(c => {
+        const label = c.players.length ? `${c.name} (${c.players.map(p => p.name.split(" ").slice(-1)[0]).join(", ")})` : `${c.name} (trống)`;
+        return `<option value="${c.id}">${label}</option>`;
+      }).join("");
+      // ưu tiên sân đang chơi
+      const active = s.courts.find(c => c.status === "occupied");
+      sel.value = active ? active.id : s.courts[0].id;
+    }
+    sel.addEventListener("change", () => render(+sel.value));
+    document.getElementById("reanalyze").onclick = () => { render(+sel.value); SB.toast("Đã phân tích", "Cập nhật dữ liệu trận đấu từ camera AI.", "ok"); };
+
+    fillSel();
+    render(+sel.value);
+    window.addEventListener("resize", () => drawHeatmap(+sel.value));
+    window.addEventListener("sbadm:update", () => { const cur = +sel.value; fillSel(); sel.value = cur; });
+  </script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+# Công cụ thiết kế đã cài (vendored, không phải mã sản phẩm)
+.claude/skills/
+
+# Phụ thuộc (nếu sau này thêm)
+node_modules/
+
+# OS / editor
+Thumbs.db
+.DS_Store
+*.log
+*.tmp
