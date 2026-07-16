@@ -31,14 +31,14 @@
   function seed() {
     const now = new Date();
     const members = [
-      mkMember("Nguyễn Văn An", "0901234567", "1995-04-12", "tbc", 0, 8),
-      mkMember("Trần Thị Bình", "0912345678", "1999-08-25", "tb", 1, 5),
-      mkMember("Lê Hoàng Cường", "0987654321", "1990-01-03", "pro", 2, 12),
-      mkMember("Phạm Thu Dung", "0934567890", "2001-11-19", "y", 3, 3),
-      mkMember("Vũ Minh Đức", "0977123456", "1988-06-30", "tbc", 4, 6),
-      mkMember("Hoàng Thị Em", "0965432109", "2003-02-14", "newbie", 5, 2),
-      mkMember("Đỗ Quang Huy", "0943210987", "1993-09-09", "tb", 1, 7),
-      mkMember("Bùi Lan Chi", "0956789012", "1997-12-01", "tbc", 2, 4),
+      mkMember("Nguyễn Văn An", "0901234567", "1995-04-12", "tbc", 0, 8, { gender: "m", address: "12 Nguyễn Huệ, Q.1, TP.HCM", pkg: "Gói 10 buổi", spent: 2340000, visits: 34 }),
+      mkMember("Trần Thị Bình", "0912345678", "1999-08-25", "tb", 1, 5, { gender: "f", address: "45 Lê Lợi, Q.3, TP.HCM", pkg: "Gói 5 buổi", spent: 1180000, visits: 19 }),
+      mkMember("Lê Hoàng Cường", "0987654321", "1990-01-03", "pro", 2, 12, { gender: "m", address: "78 Phan Xích Long, Phú Nhuận, TP.HCM", pkg: "Hội viên tháng", spent: 3600000, visits: 52 }),
+      mkMember("Phạm Thu Dung", "0934567890", "2001-11-19", "y", 3, 3, { gender: "f", address: "23 Nguyễn Thị Minh Khai, Q.1, TP.HCM", pkg: "Vãng lai", spent: 480000, visits: 8 }),
+      mkMember("Vũ Minh Đức", "0977123456", "1988-06-30", "tbc", 4, 6, { gender: "m", address: "9 Hoàng Văn Thụ, Tân Bình, TP.HCM", pkg: "Gói 10 buổi", spent: 1980000, visits: 27 }),
+      mkMember("Hoàng Thị Em", "0965432109", "2003-02-14", "newbie", 5, 2, { gender: "f", address: "156 Cách Mạng Tháng 8, Q.10, TP.HCM", pkg: "Vãng lai", spent: 240000, visits: 5 }),
+      mkMember("Đỗ Quang Huy", "0943210987", "1993-09-09", "tb", 6, 7, { gender: "m", address: "34 Điện Biên Phủ, Bình Thạnh, TP.HCM", pkg: "Gói 5 buổi", spent: 1500000, visits: 23 }),
+      mkMember("Bùi Lan Chi", "0956789012", "1997-12-01", "tbc", 7, 4, { gender: "f", address: "67 Nguyễn Trãi, Q.5, TP.HCM", pkg: "Gói 5 buổi", spent: 900000, visits: 15 }),
     ];
 
     // Vài booking hôm nay
@@ -59,27 +59,39 @@
     assignBooking(courts, bookings[0]);
     assignBooking(courts, bookings[1]);
 
-    const records = [
-      { id: uid("rec"), speed: 92, player: "Lê Hoàng Cường", court: 3, at: new Date(now - 3600e3).toISOString(), broken: false },
-      { id: uid("rec"), speed: 78, player: "Nguyễn Văn An", court: 1, at: new Date(now - 7200e3).toISOString(), broken: false },
+    // Thư viện video (đoạn cut) do khách tự cắt & đăng lên, để chiếu lên màn LED
+    const clips = [
+      mkClip("Pha bóng đẹp — sân 3", 3, 14, "Khách đăng"),
+      mkClip("Rally dài giao hữu tối qua", 1, 22, "Khách đăng"),
+      mkClip("Cú smash quyết định", 5, 10, "Khách đăng"),
     ];
 
     return {
-      members, bookings, courts, records,
+      members, bookings, courts, clips,
+      led: { nowPlaying: null, court: 3, startedAt: null },
       revenueToday: bookings.filter(b => b.pay === "paid").reduce((s, b) => s + b.price, 0),
       lastCheckin: null,
       createdAt: now.toISOString(),
     };
   }
 
-  function mkMember(name, phone, dob, level, faceIdx, sessions) {
+  function mkClip(title, court, durSec, source) {
+    return { id: uid("clip"), title, court, durSec, source: source || "Tải lên", at: new Date().toISOString() };
+  }
+
+  function mkMember(name, phone, dob, level, faceIdx, sessions, opt) {
+    opt = opt || {};
     return {
       id: uid("m"), name, phone, dob, level,
-      racket: RACKETS[faceIdx % RACKETS.length],
+      gender: opt.gender || (faceIdx % 2 === 0 ? "m" : "f"),
+      address: opt.address || "",
+      racket: opt.racket || RACKETS[faceIdx % RACKETS.length],
       faceIdx,                 // dùng để mô phỏng "khuôn mặt đã đăng ký"
       sessionsLeft: sessions,  // số buổi còn lại
-      joinedAt: new Date().toISOString(),
-      visits: Math.floor(Math.random() * 40) + 5,
+      pkg: opt.pkg || "Vãng lai",          // gói đang dùng
+      spent: opt.spent || 0,               // tổng chi tiêu (doanh thu từ khách)
+      joinedAt: opt.joinedAt || new Date().toISOString(),
+      visits: opt.visits != null ? opt.visits : Math.floor(Math.random() * 40) + 5,
     };
   }
 
@@ -107,7 +119,16 @@
   function load() {
     try {
       const raw = localStorage.getItem(KEY);
-      if (raw) return JSON.parse(raw);
+      if (raw) {
+        const s = JSON.parse(raw);
+        // Backfill cho dữ liệu cũ (tránh phải reset)
+        if (!s.clips) s.clips = [
+          mkClip("Pha bóng đẹp — sân 3", 3, 14, "Khách đăng"),
+          mkClip("Rally dài giao hữu tối qua", 1, 22, "Khách đăng"),
+        ];
+        if (!s.led) s.led = { nowPlaying: null, court: 3, startedAt: null };
+        return s;
+      }
     } catch (e) {}
     const s = seed();
     save(s);
@@ -122,11 +143,10 @@
 
   // ---------- Nghiệp vụ ----------
   // 1) Đăng ký thành viên
-  function registerMember({ name, phone, dob, level, racket }) {
+  function registerMember({ name, phone, dob, level, racket, gender, address, pkg }) {
     const s = load();
     const faceIdx = s.members.length;
-    const m = mkMember(name, phone, dob, level, faceIdx, 0);
-    if (racket) m.racket = racket;
+    const m = mkMember(name, phone, dob, level, faceIdx, 0, { gender, address, racket, pkg, visits: 0, spent: 0 });
     s.members.push(m);
     save(s);
     return m;
@@ -139,9 +159,12 @@
     if (!m) throw new Error("Không tìm thấy thành viên");
     const start = new Date(startISO);
     const b = mkBooking(m, court, start, durationMin, "paid", false);
-    if (sessionsPack) { m.sessionsLeft += sessionsPack; }
+    const packPrice = { 5: 800000, 10: 1500000 }[sessionsPack] || 0;
+    if (sessionsPack) { m.sessionsLeft += sessionsPack; m.pkg = "Gói " + sessionsPack + " buổi"; }
+    const total = b.price + packPrice;
+    m.spent = (m.spent || 0) + total;
     s.bookings.push(b);
-    s.revenueToday += b.price;
+    s.revenueToday += total;
     save(s);
     return b;
   }
@@ -220,23 +243,44 @@
     if (c) { c.status = "free"; c.players = []; c.bookingId = null; c.checkinAt = null; c.light = false; save(s); }
   }
 
-  // 4) Ghi nhận cú đánh (mô phỏng cảm biến tốc độ) -> có phá kỷ lục?
-  function recordSmash(speed, player, court) {
+  // ---------- Quản lý màn hình LED (chiếu video đoạn cut) ----------
+  function addClip({ title, court, durSec, source }) {
     const s = load();
-    const prevMax = s.records.reduce((m, r) => Math.max(m, r.speed), 0);
-    const broken = speed > prevMax;
-    const rec = { id: uid("rec"), speed, player, court, at: new Date().toISOString(), broken };
-    s.records.unshift(rec);
-    s.records = s.records.slice(0, 30);
+    const c = mkClip(title || "Video mới", court || 1, durSec || 12, source || "Tải lên");
+    s.clips.unshift(c);
     save(s);
-    return { rec, broken, prevMax };
+    return c;
   }
-  function topRecord() {
+  function removeClip(clipId) {
     const s = load();
-    return s.records.slice().sort((a, b) => b.speed - a.speed)[0] || null;
+    s.clips = s.clips.filter((c) => c.id !== clipId);
+    if (s.led.nowPlaying && s.led.nowPlaying.id === clipId) s.led = { nowPlaying: null, court: s.led.court, startedAt: null };
+    save(s);
   }
+  function castToLed(clipId, court) {
+    const s = load();
+    const c = s.clips.find((x) => x.id === clipId);
+    if (!c) return null;
+    s.led = { nowPlaying: c, court: court || c.court || s.led.court, startedAt: new Date().toISOString() };
+    save(s);
+    return c;
+  }
+  function stopLed() {
+    const s = load();
+    s.led = { nowPlaying: null, court: s.led ? s.led.court : 3, startedAt: null };
+    save(s);
+  }
+  function getLed() { return load().led; }
 
   // ---------- Helper UI dùng chung ----------
+  // Ảnh đại diện thật (ảnh chân dung placeholder, đúng giới tính, ổn định theo faceIdx)
+  function avatarUrl(m, size) {
+    const g = (m && m.gender === "f") ? "women" : "men";
+    const idx = m ? (m.faceIdx || 0) : 0;
+    const n = (idx * 13 + 5) % 90;
+    return `https://randomuser.me/api/portraits/${g}/${n}.jpg`;
+  }
+
   function icon(name, size) {
     size = size || 20;
     const P = {
@@ -269,6 +313,7 @@
       ["app-booking.html", "Đặt sân", "calendar"],
       ["checkin-kiosk.html", "Check-in", "scan"],
       ["admin-dashboard.html", "Quản lý", "monitor"],
+      ["crm.html", "Khách hàng", "users"],
       ["led-display.html", "Màn LED", "bolt"],
       ["match-analytics.html", "Phân tích AI", "chart"],
     ];
@@ -318,9 +363,10 @@
     KEY, LEVELS, RACKETS, COURT_COUNT, CHECKIN_GRACE_MIN,
     load, save, reset, seed,
     registerMember, createBooking, suggestCourt, checkinByFace,
-    detectNoShows, toggleLight, releaseCourt, recordSmash, topRecord,
+    detectNoShows, toggleLight, releaseCourt,
+    addClip, removeClip, castToLed, stopLed, getLed,
     // utils
     uid, pad, fmtTime, fmtDate, fmtVND, genPIN,
-    icon, topbar, toast, announce,
+    avatarUrl, icon, topbar, toast, announce,
   };
 })(window);
