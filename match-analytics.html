@@ -6,16 +6,13 @@
   <title>Phân tích AI trận đấu — Smart Pickleball</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/admin.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/styles.css" />
 </head>
-<body>
-  <div class="admin">
-  <div id="side"></div>
-  <div class="a-main">
-  <div id="top"></div>
-  <div class="a-content">
-  <main class="container" style="max-width:1240px;">
+<body class="bg-app">
+  <div id="topbar"></div>
+
+  <main class="container" style="max-width:1240px;padding-top:24px;padding-bottom:56px;">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:18px;">
       <div>
         <h1 style="font-size:24px;margin:0;">Phân tích trận đấu bằng AI</h1>
@@ -79,13 +76,11 @@
       <div class="grid" id="highlights" style="grid-template-columns:repeat(3,1fr);"></div>
     </div>
   </main>
-  </div></div></div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
   <script src="assets/app.js"></script>
   <script>
-    document.getElementById("side").innerHTML = SB.adminSidebar("analytics");
-    document.getElementById("top").innerHTML = SB.adminTop("Phân tích trận", "Rally, heatmap, quãng đường di chuyển");
+    document.getElementById("topbar").innerHTML = SB.topbar("match-analytics.html");
     document.getElementById("reanalyze").innerHTML = SB.icon("chart", 16) + " Phân tích lại";
 
     // ---- Sinh dữ liệu phân tích (mô phỏng CV/AI) từ seed ổn định theo sân ----
@@ -160,7 +155,7 @@
         },
         options: {
           plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.raw + " giây · " + Math.max(2, Math.round(c.raw / 1.4)) + " lần chạm bóng" } } },
-          scales: { x: { grid: { display: false }, ticks: { color: "#5B6675", maxRotation: 0 }, title: { display: true, text: "Rally #", color: "#8A94A3" } }, y: { grid: { color: "#EDF0F3" }, ticks: { color: "#8A94A3" } } },
+          scales: { x: { grid: { display: false }, ticks: { color: "#94A3B8", maxRotation: 0 }, title: { display: true, text: "Rally #", color: "#94A3B8" } }, y: { grid: { color: "#2A2F37" }, ticks: { color: "#94A3B8" } } },
         },
       });
 
@@ -184,7 +179,7 @@
         options: {
           indexAxis: "y",
           plugins: { legend: { labels: { color: "#94A3B8" } } },
-          scales: { x: { grid: { color: "#EDF0F3" }, ticks: { color: "#8A94A3" } }, y: { grid: { display: false }, ticks: { color: "#1B2430" } } },
+          scales: { x: { grid: { color: "#2A2F37" }, ticks: { color: "#94A3B8" } }, y: { grid: { display: false }, ticks: { color: "#F1F3F5" } } },
         },
       });
 

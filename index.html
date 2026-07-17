@@ -2,11 +2,137 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="refresh" content="0; url=admin-dashboard.html" />
-  <title>Smart Pickleball</title>
-  <script>location.replace("admin-dashboard.html");</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Pickleball — Đặt sân</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/styles.css" />
 </head>
-<body>
-  <p style="font-family:system-ui;padding:24px">Đang mở bảng điều khiển… <a href="admin-dashboard.html">Bấm vào đây nếu không tự chuyển</a>.</p>
+<body class="bg-app">
+  <div id="topbar"></div>
+
+  <main class="container" style="padding-top:36px;padding-bottom:64px;">
+    <!-- HERO -->
+    <section class="grid" style="grid-template-columns:1.1fr .9fr;gap:32px;align-items:center;">
+      <div>
+        <span class="badge badge-green" style="margin-bottom:16px;"><span class="live-dot" style="background:var(--color-accent)"></span> 6 sân · mở cửa 6:00 – 22:00</span>
+        <h1 style="font-size:clamp(30px,4vw,44px);line-height:1.14;margin:12px 0 14px;font-weight:700;">
+          Đặt sân pickleball<br/><span style="color:var(--color-accent)">nhanh, không cần gọi điện</span>
+        </h1>
+        <p class="muted" style="font-size:18px;max-width:520px;">
+          Chọn sân theo giờ, thanh toán trước và nhận mã QR. Đến sân chỉ cần quét khuôn mặt là vào chơi.
+        </p>
+        <div style="display:flex;gap:12px;margin-top:26px;flex-wrap:wrap;">
+          <a href="app-booking.html" class="btn btn-primary" id="cta1"></a>
+          <a href="checkin-kiosk.html" class="btn btn-ghost" id="cta2"></a>
+        </div>
+        <div style="display:flex;gap:28px;margin-top:34px;flex-wrap:wrap;" id="hero-stats"></div>
+      </div>
+
+      <div class="card card-pad">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <div style="font-weight:600;">Tình trạng sân — trực tiếp</div>
+          <span class="badge badge-red"><span class="live-dot"></span> LIVE</span>
+        </div>
+        <div class="grid" id="mini-courts" style="grid-template-columns:repeat(3,1fr);gap:10px;"></div>
+        <hr class="divider" />
+        <a href="app-booking.html" class="btn btn-primary btn-block">Đặt sân trống ngay</a>
+      </div>
+    </section>
+
+    <!-- QUICK ACTIONS -->
+    <section style="margin-top:56px;">
+      <h2 style="font-size:22px;margin-bottom:6px;">Bạn muốn làm gì?</h2>
+      <p class="muted" style="margin-bottom:22px;">Chọn thao tác nhanh bên dưới</p>
+      <div class="grid" style="grid-template-columns:repeat(4,1fr);" id="actions"></div>
+    </section>
+
+    <!-- BẢNG GIÁ NHANH -->
+    <section style="margin-top:48px;">
+      <div class="between" style="margin-bottom:16px;">
+        <h2 style="font-size:22px;margin:0;">Bảng giá thuê sân</h2>
+        <span class="muted" style="font-size:13px;">Giá theo giờ · phụ thu cuối tuần / lễ / giờ cao điểm</span>
+      </div>
+      <div class="card" style="overflow:hidden;"><div style="overflow-x:auto;"><table class="tbl" id="price-tbl"></table></div></div>
+    </section>
+
+    <!-- QUY TRÌNH -->
+    <section style="margin-top:48px;">
+      <h2 style="font-size:22px;margin-bottom:18px;">3 bước đơn giản</h2>
+      <div class="grid" style="grid-template-columns:repeat(3,1fr);" id="flow"></div>
+    </section>
+  </main>
+
+  <footer class="container muted" style="padding:28px 16px;font-size:13px;border-top:1px solid var(--color-border);">
+    Smart Pickleball · Đặt sân trực tuyến · © 2026
+  </footer>
+
+  <script src="assets/app.js"></script>
+  <script>
+    document.getElementById("topbar").innerHTML = SB.topbar("index.html");
+    document.getElementById("cta1").innerHTML = SB.icon("calendar", 18) + " Đặt sân ngay";
+    document.getElementById("cta2").innerHTML = SB.icon("scan", 18) + " Check-in tại sân";
+
+    function render() {
+      const s = SB.load();
+      const occupied = s.courts.filter(c => c.status === "occupied").length;
+      const freeCount = s.courts.length - occupied;
+      document.getElementById("hero-stats").innerHTML = [
+        [freeCount + "/" + s.courts.length, "Sân đang trống"],
+        [occupied, "Sân đang chơi"],
+        [SB.fmtVND(s.courts.reduce((m, c) => Math.min(m, c.pricePerHour), Infinity)), "Giá từ /giờ"],
+      ].map(([v, l]) => `<div class="stat"><span class="val">${v}</span><span class="lbl">${l}</span></div>`).join("");
+
+      document.getElementById("mini-courts").innerHTML = s.courts.map(c => {
+        const on = c.status === "occupied";
+        return `<a href="app-booking.html" class="court ${on ? "occupied" : "free"}" style="padding:12px;text-align:center;text-decoration:none;display:block;">
+          <div style="font-weight:600;font-size:13px;">${c.name}</div>
+          <div class="badge ${on ? "badge-green" : "badge-slate"}" style="margin-top:8px;">${on ? "Đang chơi" : "Trống"}</div>
+          <div class="muted num" style="font-size:11px;margin-top:6px;">${SB.fmtVND(c.pricePerHour)}/h</div>
+        </a>`;
+      }).join("");
+
+      // bảng giá
+      const p = s.pricing;
+      document.getElementById("price-tbl").innerHTML =
+        `<thead><tr><th>Sân</th><th>Loại</th><th style="text-align:right;">Ngày thường</th><th style="text-align:right;">Cuối tuần</th><th style="text-align:right;">Giờ cao điểm</th></tr></thead><tbody>` +
+        s.courts.map(c => `<tr><td style="font-weight:600">${c.name}</td><td class="muted">${c.type}</td>
+          <td class="num" style="text-align:right">${SB.fmtVND(SB.courtPrice(c, {}))}</td>
+          <td class="num" style="text-align:right">${SB.fmtVND(SB.courtPrice(c, { weekend: true }))}</td>
+          <td class="num" style="text-align:right">${SB.fmtVND(SB.courtPrice(c, { peak: true }))}</td></tr>`).join("")
+        + `<tr><td colspan="2" style="font-weight:600">Vé ngày / Vé tháng</td><td class="num" style="text-align:right" colspan="1">${SB.fmtVND(p.dayPass)}</td><td class="num" style="text-align:right" colspan="2">${SB.fmtVND(p.monthly)}/tháng</td></tr>`
+        + `</tbody>`;
+    }
+
+    const actions = [
+      ["app-booking.html", "calendar", "Đặt sân", "Chọn giờ, sân & thanh toán"],
+      ["checkin-kiosk.html", "scan", "Check-in", "Quét khuôn mặt vào sân"],
+      ["led-display.html", "bolt", "Màn LED tại sân", "Chiếu video của bạn"],
+      ["match-analytics.html", "chart", "Phân tích trận", "Rally, heatmap, quãng đường"],
+    ];
+    document.getElementById("actions").innerHTML = actions.map(([href, ic, t, d]) =>
+      `<a href="${href}" class="card card-pad hoverable" style="text-decoration:none;display:block;">
+         <div style="color:var(--color-accent);margin-bottom:12px;">${SB.icon(ic, 26)}</div>
+         <div style="font-weight:600;font-size:16px;margin-bottom:4px;">${t}</div>
+         <p class="muted" style="margin:0;font-size:13px;">${d}</p>
+       </a>`).join("");
+
+    const flows = [
+      ["1", "Đặt online", "Chọn ngày, giờ, sân và thanh toán trước. Nhận mã QR/PIN."],
+      ["2", "Quét mặt vào sân", "Đến sân quét khuôn mặt để check-in tự động, trừ số buổi."],
+      ["3", "Chơi & xem lại", "Chơi, tự quay và đăng video lên màn LED, xem phân tích trận."],
+    ];
+    document.getElementById("flow").innerHTML = flows.map(([n, t, d]) =>
+      `<div class="card card-pad">
+         <div class="brand-mark" style="width:36px;height:36px;font-size:16px;margin-bottom:12px;">${n}</div>
+         <div style="font-weight:600;font-size:16px;margin-bottom:6px;">${t}</div>
+         <p class="muted" style="margin:0;font-size:14px;">${d}</p>
+       </div>`).join("");
+
+    render();
+    window.addEventListener("sbadm:update", render);
+    window.addEventListener("storage", render);
+  </script>
 </body>
 </html>

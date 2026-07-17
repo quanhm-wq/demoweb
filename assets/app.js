@@ -442,10 +442,8 @@
       ["index.html", "Trang chủ", "grid"],
       ["app-booking.html", "Đặt sân", "calendar"],
       ["checkin-kiosk.html", "Check-in", "scan"],
-      ["admin-dashboard.html", "Quản lý", "monitor"],
-      ["crm.html", "Khách hàng", "users"],
       ["led-display.html", "Màn LED", "bolt"],
-      ["match-analytics.html", "Phân tích AI", "chart"],
+      ["match-analytics.html", "Phân tích", "chart"],
     ];
     const links = nav.map(([href, label, ic]) => {
       const on = active === href;
@@ -456,6 +454,7 @@
       <div class="container" style="display:flex;align-items:center;gap:16px;height:60px;">
         <a href="index.html" class="brand"><span class="brand-mark">SP</span><span class="nav-label">Smart Pickleball</span></a>
         <nav style="display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;">${links}</nav>
+        <a href="admin-dashboard.html" class="btn btn-sm btn-ghost" style="border-color:var(--color-border)" title="Sang khu quản lý">${icon("monitor", 16)}<span class="nav-label">Quản lý</span> →</a>
       </div>
     </header>`;
   }
@@ -466,12 +465,6 @@
       ["Tổng quan", [
         ["admin-dashboard.html", "dashboard", "Dashboard", "grid"],
         ["reports.html", "reports", "Thống kê", "chart"],
-      ]],
-      ["Vận hành", [
-        ["app-booking.html", "booking", "Đặt sân", "calendar"],
-        ["checkin-kiosk.html", "checkin", "Check-in", "scan"],
-        ["led-display.html", "led", "Màn LED", "bolt"],
-        ["match-analytics.html", "analytics", "Phân tích trận", "chart"],
       ]],
       ["Khách hàng", [["crm.html", "customers", "Khách hàng", "users"]]],
       ["Sân bãi", [["courts.html", "courts", "Sân & bảng giá", "court"]]],
@@ -488,6 +481,9 @@
       <aside class="a-side" id="a-side">
         <div class="a-brand"><span class="mark">SP</span><span>Smart Pickleball</span></div>
         <nav class="a-nav">${nav}</nav>
+        <div class="a-side-foot">
+          <a href="index.html" class="a-item">${icon("logout", 18)}<span>Trang khách hàng</span></a>
+        </div>
       </aside>`;
   }
   function adminTop(title, sub, actionsHTML) {

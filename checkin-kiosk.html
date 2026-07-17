@@ -6,16 +6,13 @@
   <title>Kiosk Check-in — Smart Pickleball</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/admin.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/styles.css" />
 </head>
-<body>
-  <div class="admin">
-  <div id="side"></div>
-  <div class="a-main">
-  <div id="top"></div>
-  <div class="a-content">
-  <main class="container" style="max-width:980px;">
+<body class="bg-app">
+  <div id="topbar"></div>
+
+  <main class="container" style="max-width:960px;padding-top:28px;padding-bottom:56px;">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:18px;">
       <div>
         <h1 style="font-size:24px;margin:0;">Kiosk check-in</h1>
@@ -65,12 +62,10 @@
       <div id="recent" class="muted" style="font-size:14px;">Chưa có dữ liệu.</div>
     </div>
   </main>
-  </div></div></div>
 
   <script src="assets/app.js"></script>
   <script>
-    document.getElementById("side").innerHTML = SB.adminSidebar("checkin");
-    document.getElementById("top").innerHTML = SB.adminTop("Check-in", "Quét khuôn mặt, xếp sân theo trình độ");
+    document.getElementById("topbar").innerHTML = SB.topbar("checkin-kiosk.html");
     document.getElementById("scan-btn").innerHTML = SB.icon("scan", 18) + " Quét khuôn mặt";
     document.getElementById("empty-icon").innerHTML = SB.icon("user", 40);
 
