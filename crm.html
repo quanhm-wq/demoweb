@@ -3,277 +3,246 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Khách hàng (CRM) — Smart Pickleball</title>
+  <title>Khách hàng — Quản trị Smart Pickleball</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/admin.css" />
 </head>
-<body class="bg-app">
-  <div id="topbar"></div>
+<body>
+  <div class="admin">
+    <div id="side"></div>
+    <div class="a-main">
+      <div id="top"></div>
+      <div class="a-content">
+        <div class="grid" id="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:18px;"></div>
 
-  <main class="container" style="max-width:1240px;padding-top:24px;padding-bottom:56px;">
-    <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
-      <div>
-        <h1 style="font-size:24px;margin:0;">Khách hàng</h1>
-        <p class="muted" style="margin:4px 0 0;">Hồ sơ thành viên, gói tập và lịch sử chi tiêu</p>
+        <div class="between" style="margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+          <div class="tabs" style="margin:0;border:0;">
+            <div class="tab active" data-view="table" id="tab-table">Danh sách</div>
+            <div class="tab" data-view="kanban" id="tab-kanban">Kanban</div>
+          </div>
+          <div class="row wrap" style="gap:8px;">
+            <input class="input" id="q" placeholder="Tìm tên, SĐT, địa chỉ..." style="width:240px;height:36px;" />
+            <select class="input" id="f-level" style="width:auto;height:36px;"><option value="">Mọi trình độ</option></select>
+          </div>
+        </div>
+
+        <!-- TABLE VIEW -->
+        <div id="view-table" class="card" style="overflow:hidden;">
+          <div class="scroll-x" style="max-height:62vh;overflow-y:auto;">
+            <table class="tbl" id="tbl"></table>
+          </div>
+          <div id="empty" class="muted" style="display:none;padding:28px;text-align:center;">Không tìm thấy khách hàng.</div>
+        </div>
+
+        <!-- KANBAN VIEW -->
+        <div id="view-kanban" style="display:none;">
+          <div class="kanban" id="kanban"></div>
+          <div class="muted" style="font-size:12.5px;margin-top:10px;">Kéo thẻ khách sang cột khác để đổi giai đoạn chăm sóc.</div>
+        </div>
       </div>
-      <button class="btn btn-primary" id="add-btn"></button>
     </div>
-
-    <!-- Chỉ số -->
-    <div class="grid" id="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px;"></div>
-
-    <!-- Bộ lọc -->
-    <div class="card card-pad" style="margin-bottom:16px;">
-      <div class="grid" style="grid-template-columns:1fr auto auto;gap:12px;align-items:end;">
-        <div class="field"><label>Tìm kiếm</label><input class="input" id="q" placeholder="Tên, số điện thoại hoặc địa chỉ..." /></div>
-        <div class="field"><label>Trình độ</label><select class="input" id="f-level"><option value="">Tất cả</option></select></div>
-        <div class="field"><label>Gói</label><select class="input" id="f-pkg"><option value="">Tất cả</option></select></div>
-      </div>
-    </div>
-
-    <!-- Bảng -->
-    <div class="card" style="overflow:hidden;">
-      <div class="scroll-y" style="max-height:60vh;">
-        <table class="tbl" id="tbl">
-          <thead>
-            <tr>
-              <th>Khách hàng</th><th>Điện thoại</th><th>Địa chỉ</th><th>Trình độ</th>
-              <th>Gói</th><th style="text-align:right;">Buổi còn</th><th style="text-align:right;">Tổng chi tiêu</th><th style="text-align:right;">Lượt đến</th>
-            </tr>
-          </thead>
-          <tbody id="rows"></tbody>
-        </table>
-      </div>
-      <div id="empty" class="muted" style="display:none;padding:32px;text-align:center;">Không tìm thấy khách hàng phù hợp.</div>
-    </div>
-    <div class="muted" style="font-size:13px;margin-top:10px;" id="count"></div>
-  </main>
-
+  </div>
   <div id="modal-root"></div>
 
   <script src="assets/app.js"></script>
   <script>
-    document.getElementById("topbar").innerHTML = SB.topbar("crm.html");
-    document.getElementById("add-btn").innerHTML = SB.icon("user", 16) + " Thêm khách hàng";
+    document.getElementById("side").innerHTML = SB.adminSidebar("customers");
+    document.getElementById("top").innerHTML = SB.adminTop("Khách hàng", "Hồ sơ, gói tập, lịch sử chi tiêu",
+      `<button class="btn btn-primary btn-sm" id="add">${SB.icon("plus", 15)} Thêm khách hàng</button>`);
 
-    // Fill filters
     const flLevel = document.getElementById("f-level");
     Object.entries(SB.LEVELS).forEach(([k, v]) => flLevel.insertAdjacentHTML("beforeend", `<option value="${k}">${v.name}</option>`));
 
-    function packages() {
-      const set = new Set(SB.load().members.map(m => m.pkg));
-      return Array.from(set);
+    const STAGES = [
+      { key: "moi", name: "Khách mới", color: "var(--info)" },
+      { key: "dang", name: "Đang hoạt động", color: "var(--accent)" },
+      { key: "sap_het", name: "Sắp hết buổi / hạn", color: "var(--warning)" },
+      { key: "vip", name: "Khách VIP", color: "#7c3aed" },
+    ];
+    function stageOf(m) {
+      if (m.stage) return m.stage;
+      if ((m.spent || 0) >= 2000000) return "vip";
+      if (m.pkg && m.pkg !== "Vãng lai" && m.sessionsLeft <= 2) return "sap_het";
+      if (m.pkg === "Vãng lai") return "moi";
+      return "dang";
     }
-    function fillPkgFilter() {
-      const cur = document.getElementById("f-pkg").value;
-      const flPkg = document.getElementById("f-pkg");
-      flPkg.innerHTML = `<option value="">Tất cả</option>` + packages().map(p => `<option value="${p}">${p}</option>`).join("");
-      flPkg.value = cur;
+    function pkgBadge(p) { const map = { "Hội viên tháng": "b-green", "Gói 10 buổi": "b-blue", "Gói 5 buổi": "b-blue", "Vãng lai": "b-gray" }; return `<span class="badge ${map[p] || "b-gray"}">${p}</span>`; }
+    function lvName(l) { return SB.LEVELS[l].name.replace(/\s*\(.*\)/, ""); }
+
+    let view = "table";
+    document.getElementById("tab-table").onclick = () => setView("table");
+    document.getElementById("tab-kanban").onclick = () => setView("kanban");
+    function setView(v) {
+      view = v;
+      document.getElementById("tab-table").classList.toggle("active", v === "table");
+      document.getElementById("tab-kanban").classList.toggle("active", v === "kanban");
+      document.getElementById("view-table").style.display = v === "table" ? "" : "none";
+      document.getElementById("view-kanban").style.display = v === "kanban" ? "" : "none";
+      render();
     }
 
-    function pkgBadge(p) {
-      const map = { "Hội viên tháng": "badge-green", "Gói 10 buổi": "badge-blue", "Gói 5 buổi": "badge-blue", "Vãng lai": "badge-slate" };
-      return `<span class="badge ${map[p] || "badge-slate"}">${p}</span>`;
+    ["q", "f-level"].forEach(id => document.getElementById(id).addEventListener("input", render));
+
+    function filtered() {
+      const s = SB.load();
+      const q = document.getElementById("q").value.trim().toLowerCase();
+      const lv = document.getElementById("f-level").value;
+      let list = s.members.slice();
+      if (q) list = list.filter(m => (m.name + " " + m.phone + " " + (m.address || "")).toLowerCase().includes(q));
+      if (lv) list = list.filter(m => m.level === lv);
+      return list;
     }
 
     function render() {
       const s = SB.load();
-      const q = document.getElementById("q").value.trim().toLowerCase();
-      const lv = document.getElementById("f-level").value;
-      const pk = document.getElementById("f-pkg").value;
-
-      // Chỉ số
       const totalSpent = s.members.reduce((a, m) => a + (m.spent || 0), 0);
       const vip = s.members.filter(m => (m.spent || 0) >= 2000000).length;
-      const activePkg = s.members.filter(m => m.pkg && m.pkg !== "Vãng lai").length;
+      const active = s.members.filter(m => m.pkg && m.pkg !== "Vãng lai").length;
       document.getElementById("stats").innerHTML = [
-        [s.members.length, "Tổng khách hàng", "users"],
-        [SB.fmtVND(totalSpent), "Doanh thu luỹ kế", "money"],
-        [activePkg, "Đang có gói", "calendar"],
-        [vip, "Khách VIP (≥ 2tr)", "bolt"],
-      ].map(([v, l, ic]) =>
-        `<div class="card card-pad"><div style="display:flex;justify-content:space-between;align-items:flex-start;">
-          <div class="stat"><span class="val" style="font-size:${String(v).length > 8 ? "20px" : "26px"}">${v}</span><span class="lbl">${l}</span></div>
-          <span class="muted">${SB.icon(ic, 18)}</span></div></div>`).join("");
+        [s.members.length, "Tổng khách hàng"],
+        [SB.fmtVND(totalSpent), "Doanh thu luỹ kế"],
+        [active, "Đang có gói"],
+        [vip, "Khách VIP (≥ 2tr)"],
+      ].map(([v, l]) => `<div class="kpi"><div class="lbl">${l}</div><div class="val">${v}</div></div>`).join("");
 
-      // Lọc
-      let list = s.members.slice();
-      if (q) list = list.filter(m => (m.name + " " + m.phone + " " + (m.address || "")).toLowerCase().includes(q));
-      if (lv) list = list.filter(m => m.level === lv);
-      if (pk) list = list.filter(m => m.pkg === pk);
-      list.sort((a, b) => (b.spent || 0) - (a.spent || 0));
+      if (view === "table") renderTable(); else renderKanban();
+    }
 
-      const rows = document.getElementById("rows");
-      rows.innerHTML = list.map(m => `
-        <tr data-id="${m.id}" style="cursor:pointer;">
-          <td>
-            <div style="display:flex;align-items:center;gap:10px;">
-              <img class="avatar" src="${SB.avatarUrl(m)}" alt="${m.name}" width="36" height="36" loading="lazy" />
-              <div><div style="font-weight:600;">${m.name}</div><div class="muted" style="font-size:11px;">Tham gia ${SB.fmtDate(new Date(m.joinedAt))}</div></div>
-            </div>
-          </td>
-          <td class="num">${m.phone}</td>
-          <td style="max-width:220px;">${m.address || "<span class='muted'>—</span>"}</td>
-          <td><span class="level-dot ${SB.LEVELS[m.level].cls}"></span> ${SB.LEVELS[m.level].name.replace(/\s*\(.*\)/, "")}</td>
-          <td>${pkgBadge(m.pkg)}</td>
-          <td class="num" style="text-align:right;">${m.sessionsLeft}</td>
-          <td class="num" style="text-align:right;font-weight:600;">${SB.fmtVND(m.spent || 0)}</td>
-          <td class="num" style="text-align:right;">${m.visits}</td>
-        </tr>`).join("");
-
+    function renderTable() {
+      const list = filtered().sort((a, b) => (b.spent || 0) - (a.spent || 0));
+      document.getElementById("tbl").innerHTML =
+        `<thead><tr><th>Khách hàng</th><th>Điện thoại</th><th>Địa chỉ</th><th>Trình độ</th><th>Gói</th><th class="right">Buổi</th><th class="right">Chi tiêu</th><th class="right">Lượt</th></tr></thead><tbody>` +
+        list.map(m => `<tr data-id="${m.id}" style="cursor:pointer">
+          <td><div class="row" style="gap:10px"><img class="avatar" src="${SB.avatarUrl(m)}" width="34" height="34" loading="lazy" /><div><div style="font-weight:600">${m.name}</div><div class="muted" style="font-size:11px">Tham gia ${SB.fmtDate(new Date(m.joinedAt))}</div></div></div></td>
+          <td class="num">${m.phone}</td><td style="max-width:220px">${m.address || "—"}</td>
+          <td><span class="dot" style="background:${lvColor(m.level)}"></span> ${lvName(m.level)}</td>
+          <td>${pkgBadge(m.pkg)}</td><td class="num right">${m.sessionsLeft}</td>
+          <td class="num right" style="font-weight:600">${SB.fmtVND(m.spent || 0)}</td><td class="num right">${m.visits}</td>
+        </tr>`).join("") + `</tbody>`;
       document.getElementById("empty").style.display = list.length ? "none" : "block";
-      document.getElementById("count").textContent = `Hiển thị ${list.length}/${s.members.length} khách hàng`;
+      document.querySelectorAll("#tbl tbody tr").forEach(tr => tr.onclick = () => openDetail(tr.dataset.id));
+    }
+    function lvColor(l) { return { newbie: "#7B8493", y: "#4C9BD6", tb: "#16A34A", tbc: "#B45309", pro: "#DC2626" }[l] || "#7B8493"; }
 
-      rows.querySelectorAll("tr").forEach(tr => tr.onclick = () => openDetail(tr.dataset.id));
+    function renderKanban() {
+      const list = filtered();
+      const byStage = {}; STAGES.forEach(s => byStage[s.key] = []);
+      list.forEach(m => { const st = stageOf(m); (byStage[st] || byStage.dang).push(m); });
+      document.getElementById("kanban").innerHTML = STAGES.map(st => `
+        <div class="kcol" data-stage="${st.key}">
+          <div class="kcol-hd"><span><span class="dot" style="background:${st.color}"></span> ${st.name}</span><span class="badge b-gray">${byStage[st.key].length}</span></div>
+          <div class="kcol-body" data-stage="${st.key}">
+            ${byStage[st.key].map(m => `
+              <div class="kcard" draggable="true" data-id="${m.id}">
+                <div class="row" style="gap:10px;margin-bottom:8px"><img class="avatar" src="${SB.avatarUrl(m)}" width="34" height="34" loading="lazy"/><div><div style="font-weight:600;font-size:13.5px">${m.name}</div><div class="muted" style="font-size:11px">${m.phone}</div></div></div>
+                <div class="between">${pkgBadge(m.pkg)}<span class="muted" style="font-size:12px">${m.sessionsLeft} buổi · ${SB.fmtVND(m.spent || 0)}</span></div>
+              </div>`).join("")}
+          </div>
+        </div>`).join("");
+      bindDnd();
     }
 
-    ["q", "f-level", "f-pkg"].forEach(id => document.getElementById(id).addEventListener("input", render));
+    let dragId = null;
+    function bindDnd() {
+      document.querySelectorAll(".kcard").forEach(card => {
+        card.addEventListener("dragstart", e => { dragId = card.dataset.id; card.classList.add("drag"); });
+        card.addEventListener("dragend", e => { card.classList.remove("drag"); document.querySelectorAll(".kcol").forEach(c => c.classList.remove("over")); });
+        card.addEventListener("click", () => openDetail(card.dataset.id));
+      });
+      document.querySelectorAll(".kcol-body").forEach(col => {
+        const kcol = col.closest(".kcol");
+        col.addEventListener("dragover", e => { e.preventDefault(); kcol.classList.add("over"); });
+        col.addEventListener("dragleave", () => kcol.classList.remove("over"));
+        col.addEventListener("drop", e => {
+          e.preventDefault(); kcol.classList.remove("over");
+          if (!dragId) return;
+          const s = SB.load(); const m = s.members.find(x => x.id === dragId);
+          if (m) { m.stage = col.dataset.stage; SB.save(s); }
+          dragId = null; render();
+        });
+      });
+    }
 
-    // ---- Chi tiết khách hàng ----
+    // ---- Detail drawer ----
     function openDetail(id) {
-      const s = SB.load();
-      const m = s.members.find(x => x.id === id);
-      if (!m) return;
-      const lv = SB.LEVELS[m.level];
+      const s = SB.load(); const m = s.members.find(x => x.id === id); if (!m) return;
       const history = s.bookings.filter(b => b.memberId === m.id).sort((a, b) => new Date(b.start) - new Date(a.start));
+      const orders = s.orders.filter(o => o.memberId === m.id);
       const age = m.dob ? (new Date().getFullYear() - new Date(m.dob).getFullYear()) : "—";
-
-      const rows = history.length ? history.map(b => `
-        <tr>
-          <td class="num">${SB.fmtDate(new Date(b.start))}</td>
-          <td>Sân ${b.court}</td>
-          <td class="num">${b.durationMin}p</td>
-          <td class="num" style="text-align:right;">${SB.fmtVND(b.price)}</td>
-          <td>${b.checkedIn ? '<span class="badge badge-green">Đã chơi</span>' : '<span class="badge badge-amber">Đã đặt</span>'}</td>
-        </tr>`).join("") : `<tr><td colspan="5" class="muted" style="text-align:center;padding:16px;">Chưa có lịch sử đặt sân.</td></tr>`;
-
-      openOverlay(`
-        <div class="drawer">
-          <div style="padding:20px;border-bottom:1px solid var(--color-border);display:flex;gap:14px;align-items:center;">
-            <img class="avatar" src="${SB.avatarUrl(m)}" alt="${m.name}" width="64" height="64" />
-            <div style="flex:1;">
-              <div style="font-size:20px;font-weight:700;">${m.name}</div>
-              <div class="muted" style="font-size:13px;"><span class="level-dot ${lv.cls}"></span> ${lv.name} · ${m.gender === "f" ? "Nữ" : "Nam"} · ${age} tuổi</div>
-            </div>
-            <button class="btn btn-sm btn-ghost" onclick="closeOverlay()">Đóng</button>
+      const rows = history.length ? history.map(b => `<tr><td class="num">${SB.fmtDate(new Date(b.start))}</td><td>Sân ${b.court}</td><td class="num">${b.durationMin}p</td><td class="num right">${SB.fmtVND(b.price)}</td></tr>`).join("") : `<tr><td colspan="4" class="muted" style="text-align:center;padding:14px">Chưa có lịch sử.</td></tr>`;
+      openOverlay(`<div class="overlay right" onclick="if(event.target===this)closeOverlay()"><div class="drawer">
+        <div class="drawer-hd"><div class="row" style="gap:12px"><img class="avatar" src="${SB.avatarUrl(m)}" width="56" height="56"/><div><h3>${m.name}</h3><div class="muted" style="font-size:13px">${lvName(m.level)} · ${m.gender === "f" ? "Nữ" : "Nam"} · ${age} tuổi</div></div></div><button class="btn btn-ghost btn-sm" onclick="closeOverlay()">Đóng</button></div>
+        <div style="padding:18px">
+          <div class="grid" style="grid-template-columns:1fr 1fr;margin-bottom:16px">
+            <div class="kpi"><div class="lbl">Tổng chi tiêu</div><div class="val" style="font-size:20px;color:var(--accent-ink)">${SB.fmtVND(m.spent || 0)}</div></div>
+            <div class="kpi"><div class="lbl">Lượt đến</div><div class="val" style="font-size:20px">${m.visits}</div></div>
+            <div class="kpi"><div class="lbl">Buổi còn lại</div><div class="val" style="font-size:20px">${m.sessionsLeft}</div></div>
+            <div class="kpi"><div class="lbl">Gói</div><div class="val" style="font-size:15px">${m.pkg}</div></div>
           </div>
-          <div style="padding:20px;">
-            <div class="grid" style="grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;">
-              <div class="stat"><span class="val" style="font-size:20px;color:var(--color-accent)">${SB.fmtVND(m.spent || 0)}</span><span class="lbl">Tổng chi tiêu</span></div>
-              <div class="stat"><span class="val" style="font-size:20px;">${m.visits}</span><span class="lbl">Lượt đến</span></div>
-              <div class="stat"><span class="val" style="font-size:20px;">${m.sessionsLeft}</span><span class="lbl">Buổi còn lại</span></div>
-              <div class="stat"><span class="val" style="font-size:16px;">${m.pkg}</span><span class="lbl">Gói hiện tại</span></div>
-            </div>
-            <div class="card card-pad" style="margin-bottom:18px;">
-              ${infoRow("Điện thoại", m.phone)}
-              ${infoRow("Địa chỉ", m.address || "—")}
-              ${infoRow("Ngày sinh", m.dob ? SB.fmtDate(new Date(m.dob)) : "—")}
-              ${infoRow("Vợt (paddle)", m.racket)}
-              ${infoRow("Ngày tham gia", SB.fmtDate(new Date(m.joinedAt)))}
-            </div>
-            <div style="font-weight:600;margin-bottom:8px;">Lịch sử đặt sân</div>
-            <table class="tbl"><thead><tr><th>Ngày</th><th>Sân</th><th>Thời lượng</th><th style="text-align:right;">Tiền</th><th>TT</th></tr></thead><tbody>${rows}</tbody></table>
-            <div style="display:flex;gap:8px;margin-top:18px;">
-              <button class="btn btn-primary btn-sm" onclick="addSessions('${m.id}',5)">Nạp 5 buổi</button>
-              <button class="btn btn-ghost btn-sm" onclick="addSessions('${m.id}',10)">Nạp 10 buổi</button>
-            </div>
+          <div class="card card-pad" style="margin-bottom:16px">
+            ${info("Điện thoại", m.phone)}${info("Địa chỉ", m.address || "—")}${info("Ngày sinh", m.dob ? SB.fmtDate(new Date(m.dob)) : "—")}${info("Vợt (paddle)", m.racket)}${info("Ngày tham gia", SB.fmtDate(new Date(m.joinedAt)))}
           </div>
-        </div>`);
+          <div style="font-weight:650;margin-bottom:8px">Gói/đơn thuê</div>
+          <div style="margin-bottom:16px">${orders.length ? orders.map(o => `<div class="between" style="padding:6px 0;border-bottom:1px solid var(--border-2)"><span>${o.type} · ${o.detail}</span><strong class="num">${SB.fmtVND(o.amount)}</strong></div>`).join("") : '<div class="muted">Chưa có đơn.</div>'}</div>
+          <div style="font-weight:650;margin-bottom:8px">Lịch sử đặt sân</div>
+          <table class="tbl"><thead><tr><th>Ngày</th><th>Sân</th><th>Giờ chơi</th><th class="right">Tiền</th></tr></thead><tbody>${rows}</tbody></table>
+          <div class="row" style="margin-top:16px;gap:8px"><button class="btn btn-primary btn-sm" onclick="addSess('${m.id}',5)">Nạp 5 buổi</button><button class="btn btn-ghost btn-sm" onclick="addSess('${m.id}',10)">Nạp 10 buổi</button></div>
+        </div>
+      </div></div>`);
     }
-    function infoRow(k, v) {
-      return `<div style="display:flex;justify-content:space-between;gap:16px;padding:6px 0;border-bottom:1px solid var(--color-border);"><span class="muted" style="font-size:13px;">${k}</span><span style="font-weight:500;text-align:right;">${v}</span></div>`;
-    }
-    window.addSessions = (id, n) => {
-      const s = SB.load();
-      const m = s.members.find(x => x.id === id);
-      if (!m) return;
+    function info(k, v) { return `<div class="between" style="padding:6px 0;border-bottom:1px solid var(--border-2)"><span class="muted">${k}</span><span style="font-weight:500">${v}</span></div>`; }
+    window.addSess = (id, n) => {
+      const s = SB.load(); const m = s.members.find(x => x.id === id); if (!m) return;
       const price = n === 10 ? 1500000 : 800000;
       m.sessionsLeft += n; m.pkg = "Gói " + n + " buổi"; m.spent = (m.spent || 0) + price;
-      s.revenueToday += price;
-      SB.save(s);
-      SB.toast("Đã nạp gói", `${m.name} +${n} buổi · ${SB.fmtVND(price)}`, "ok");
-      closeOverlay(); render(); fillPkgFilter();
+      s.transactions.unshift({ id: SB.uid("t"), type: "thu", category: "Bán gói", note: "Gói " + n + " buổi · " + m.name, amount: price, at: new Date().toISOString() });
+      s.revenueToday += price; SB.save(s);
+      SB.adminToast("Đã nạp gói", `${m.name} +${n} buổi · ${SB.fmtVND(price)}`, "ok");
+      closeOverlay(); render();
     };
 
-    // ---- Thêm khách hàng ----
-    document.getElementById("add-btn").onclick = () => {
+    // ---- Add customer ----
+    document.getElementById("add").onclick = () => {
       const lvOpts = Object.entries(SB.LEVELS).map(([k, v]) => `<option value="${k}">${v.name}</option>`).join("");
       const rkOpts = SB.RACKETS.map(r => `<option>${r}</option>`).join("");
-      openOverlay(`
-        <div class="overlay center" onclick="if(event.target===this)closeOverlay()">
-          <div class="modal">
-            <div style="padding:16px 20px;border-bottom:1px solid var(--color-border);display:flex;justify-content:space-between;align-items:center;">
-              <div style="font-weight:700;font-size:18px;">Thêm khách hàng</div>
-              <button class="btn btn-sm btn-ghost" onclick="closeOverlay()">Đóng</button>
-            </div>
-            <div style="padding:20px;">
-              <div class="grid" style="grid-template-columns:1fr 1fr;gap:14px;">
-                <div class="field" style="grid-column:1/3;"><label>Họ và tên</label><input class="input" id="m-name" placeholder="VD: Nguyễn Văn A" /></div>
-                <div class="field"><label>Số điện thoại</label><input class="input" id="m-phone" placeholder="09xxxxxxxx" inputmode="numeric" /></div>
-                <div class="field"><label>Ngày sinh</label><input class="input" id="m-dob" type="date" /></div>
-                <div class="field" style="grid-column:1/3;"><label>Địa chỉ</label><input class="input" id="m-addr" placeholder="Số nhà, đường, quận, thành phố" /></div>
-                <div class="field"><label>Giới tính</label><select class="input" id="m-gender"><option value="m">Nam</option><option value="f">Nữ</option></select></div>
-                <div class="field"><label>Trình độ</label><select class="input" id="m-level">${lvOpts}</select></div>
-                <div class="field"><label>Vợt (paddle)</label><select class="input" id="m-racket">${rkOpts}</select></div>
-                <div class="field"><label>Gói đăng ký</label><select class="input" id="m-pkg">
-                  <option value="Vãng lai">Vãng lai</option>
-                  <option value="Gói 5 buổi">Gói 5 buổi (800.000đ)</option>
-                  <option value="Gói 10 buổi">Gói 10 buổi (1.500.000đ)</option>
-                  <option value="Hội viên tháng">Hội viên tháng (1.200.000đ)</option>
-                </select></div>
-              </div>
-              <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px;">
-                <button class="btn btn-ghost" onclick="closeOverlay()">Huỷ</button>
-                <button class="btn btn-primary" id="save-member">Lưu khách hàng</button>
-              </div>
-            </div>
-          </div>
-        </div>`, true);
+      openOverlay(`<div class="overlay center" onclick="if(event.target===this)closeOverlay()"><div class="modal">
+        <div class="modal-hd"><h3>Thêm khách hàng</h3><button class="btn btn-ghost btn-sm" onclick="closeOverlay()">Đóng</button></div>
+        <div style="padding:18px"><div class="grid" style="grid-template-columns:1fr 1fr">
+          <div class="field" style="grid-column:1/3"><label>Họ và tên</label><input class="input" id="m-name" placeholder="Nguyễn Văn A"/></div>
+          <div class="field"><label>Số điện thoại</label><input class="input" id="m-phone" placeholder="09xxxxxxxx"/></div>
+          <div class="field"><label>Ngày sinh</label><input class="input" id="m-dob" type="date"/></div>
+          <div class="field" style="grid-column:1/3"><label>Địa chỉ</label><input class="input" id="m-addr" placeholder="Số nhà, đường, quận, thành phố"/></div>
+          <div class="field"><label>Giới tính</label><select class="input" id="m-gender"><option value="m">Nam</option><option value="f">Nữ</option></select></div>
+          <div class="field"><label>Trình độ</label><select class="input" id="m-level">${lvOpts}</select></div>
+          <div class="field"><label>Vợt (paddle)</label><select class="input" id="m-racket">${rkOpts}</select></div>
+          <div class="field"><label>Gói đăng ký</label><select class="input" id="m-pkg"><option>Vãng lai</option><option>Gói 5 buổi</option><option>Gói 10 buổi</option><option>Hội viên tháng</option></select></div>
+        </div>
+        <div class="row" style="justify-content:flex-end;margin-top:18px;gap:8px"><button class="btn btn-ghost" onclick="closeOverlay()">Huỷ</button><button class="btn btn-primary" id="save-m">Lưu khách hàng</button></div>
+        </div>
+      </div></div>`);
       document.getElementById("m-level").value = "tb";
-      document.getElementById("save-member").onclick = saveMember;
+      document.getElementById("save-m").onclick = saveMember;
     };
-
     function saveMember() {
       const name = document.getElementById("m-name").value.trim();
       const phone = document.getElementById("m-phone").value.trim();
-      if (!name || phone.length < 9) { SB.toast("Thiếu thông tin", "Nhập họ tên và số điện thoại hợp lệ.", "err"); return; }
+      if (!name || phone.length < 9) { SB.adminToast("Thiếu thông tin", "Nhập họ tên và SĐT hợp lệ.", "err"); return; }
       const pkg = document.getElementById("m-pkg").value;
-      const m = SB.registerMember({
-        name, phone,
-        dob: document.getElementById("m-dob").value,
-        address: document.getElementById("m-addr").value.trim(),
-        gender: document.getElementById("m-gender").value,
-        level: document.getElementById("m-level").value,
-        racket: document.getElementById("m-racket").value,
-        pkg,
-      });
-      // Nếu mua gói -> cộng buổi + doanh thu
+      const m = SB.registerMember({ name, phone, dob: document.getElementById("m-dob").value, address: document.getElementById("m-addr").value.trim(), gender: document.getElementById("m-gender").value, level: document.getElementById("m-level").value, racket: document.getElementById("m-racket").value, pkg });
       const packInfo = { "Gói 5 buổi": [5, 800000], "Gói 10 buổi": [10, 1500000], "Hội viên tháng": [30, 1200000] }[pkg];
-      if (packInfo) {
-        const s = SB.load();
-        const mm = s.members.find(x => x.id === m.id);
-        mm.sessionsLeft += packInfo[0]; mm.spent += packInfo[1];
-        s.revenueToday += packInfo[1];
-        SB.save(s);
-      }
-      SB.toast("Đã thêm khách hàng", name + " · " + pkg, "ok");
-      closeOverlay(); render(); fillPkgFilter();
+      if (packInfo) { const s = SB.load(); const mm = s.members.find(x => x.id === m.id); mm.sessionsLeft += packInfo[0]; mm.spent += packInfo[1]; s.revenueToday += packInfo[1]; s.transactions.unshift({ id: SB.uid("t"), type: "thu", category: "Bán gói", note: pkg + " · " + name, amount: packInfo[1], at: new Date().toISOString() }); SB.save(s); }
+      SB.adminToast("Đã thêm khách hàng", name + " · " + pkg, "ok");
+      closeOverlay(); render();
     }
 
-    // ---- Overlay helpers ----
-    function openOverlay(html, isModal) {
-      const root = document.getElementById("modal-root");
-      root.innerHTML = isModal ? html : `<div class="overlay" onclick="if(event.target===this)closeOverlay()">${html}</div>`;
-      document.body.style.overflow = "hidden";
-    }
+    function openOverlay(html) { document.getElementById("modal-root").innerHTML = html; document.body.style.overflow = "hidden"; }
     window.closeOverlay = () => { document.getElementById("modal-root").innerHTML = ""; document.body.style.overflow = ""; };
     document.addEventListener("keydown", e => { if (e.key === "Escape") closeOverlay(); });
 
-    fillPkgFilter();
     render();
-    window.addEventListener("sbadm:update", () => { render(); fillPkgFilter(); });
+    window.addEventListener("sbadm:update", render);
     window.addEventListener("storage", render);
   </script>
 </body>

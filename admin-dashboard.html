@@ -3,226 +3,146 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard quản lý — Smart Pickleball</title>
+  <title>Dashboard — Quản trị Smart Pickleball</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/admin.css" />
 </head>
-<body class="bg-app">
-  <div id="topbar"></div>
+<body>
+  <div class="admin">
+    <div id="side"></div>
+    <div class="a-main">
+      <div id="top"></div>
+      <div class="a-content">
+        <div class="grid" id="kpis" style="grid-template-columns:repeat(5,1fr);margin-bottom:18px;"></div>
 
-  <main class="container" style="max-width:1240px;padding-top:24px;padding-bottom:56px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:18px;">
-      <div>
-        <h1 style="font-size:24px;margin:0;">Bảng điều khiển vận hành</h1>
-        <p class="muted" style="margin:4px 0 0;" id="clock"></p>
-      </div>
-      <div style="display:flex;gap:8px;">
-        <button class="btn btn-sm btn-ghost" id="btn-noshow"></button>
-        <button class="btn btn-sm btn-ghost" onclick="if(confirm('Đặt lại toàn bộ dữ liệu demo?')){SB.reset();location.reload()}">Reset demo</button>
-      </div>
-    </div>
-
-    <!-- KPI -->
-    <div class="grid" id="kpis" style="grid-template-columns:repeat(5,1fr);margin-bottom:20px;"></div>
-
-    <div class="grid" style="grid-template-columns:1.5fr 1fr;gap:20px;align-items:start;">
-      <!-- Sơ đồ sân -->
-      <div class="card card-pad">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-          <div style="font-weight:600;">Sơ đồ sân — thời gian thực</div>
-          <span class="badge badge-red"><span class="live-dot"></span> LIVE</span>
-        </div>
-        <div class="grid" id="court-map" style="grid-template-columns:repeat(3,1fr);gap:12px;"></div>
-        <div class="muted" style="font-size:12px;margin-top:12px;display:flex;gap:16px;flex-wrap:wrap;">
-          <span><span class="level-dot" style="background:var(--color-accent)"></span> Đang chơi</span>
-          <span><span class="level-dot" style="background:#334155"></span> Trống</span>
-          <span><span class="level-dot" style="background:#ef4444"></span> Quá giờ check-in</span>
-        </div>
-      </div>
-
-      <!-- Cột phải -->
-      <div class="grid" style="gap:20px;">
-        <!-- Cảnh báo no-show -->
-        <div class="card card-pad">
-          <div style="font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
-            <span style="color:var(--color-warning)" id="alert-ic"></span> Cảnh báo no-show
+        <div class="grid" style="grid-template-columns:1.4fr 1fr;margin-bottom:18px;align-items:start;">
+          <div class="card">
+            <div class="card-hd"><h3>Trạng thái sân</h3><span class="badge b-red" id="live"><span class="dot" style="background:currentColor"></span> Trực tiếp</span></div>
+            <div class="card-pad"><div class="grid" id="courtmap" style="grid-template-columns:repeat(3,1fr);"></div></div>
           </div>
-          <div id="noshow-list" class="muted" style="font-size:14px;">Đang kiểm tra...</div>
+          <div class="card">
+            <div class="card-hd"><h3>Dòng tiền (sổ)</h3></div>
+            <div class="card-pad" id="cash"></div>
+          </div>
         </div>
 
-        <!-- Doanh thu -->
-        <div class="card card-pad">
-          <div style="font-weight:600;margin-bottom:10px;">Doanh thu theo giờ</div>
-          <canvas id="rev-chart" height="140"></canvas>
+        <div class="grid" style="grid-template-columns:1.4fr 1fr;align-items:start;">
+          <div class="card">
+            <div class="card-hd"><h3>Doanh thu theo giờ hôm nay</h3></div>
+            <div class="card-pad"><canvas id="rev" height="150"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-hd"><h3>Cảnh báo no-show</h3></div>
+            <div class="card-pad" id="noshow"></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:18px;">
+          <div class="card-hd"><h3>Lịch đặt sân hôm nay</h3><a href="courts.html" class="btn btn-sm btn-ghost">Xem lịch sân</a></div>
+          <div class="scroll-x"><table class="tbl" id="bookings"></table></div>
         </div>
       </div>
     </div>
-
-    <!-- Booking + CRM -->
-    <div class="grid" style="grid-template-columns:1fr 1fr;gap:20px;margin-top:20px;align-items:start;">
-      <div class="card card-pad">
-        <div style="font-weight:600;margin-bottom:10px;">Lịch đặt sân hôm nay</div>
-        <div id="bookings" class="scroll-y" style="max-height:340px;"></div>
-      </div>
-      <div class="card card-pad">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <div style="font-weight:600;">CRM — Thành viên</div>
-          <input class="input" id="crm-search" placeholder="Tìm tên / SĐT..." style="max-width:200px;height:36px;" />
-        </div>
-        <div id="crm" class="scroll-y" style="max-height:340px;"></div>
-      </div>
-    </div>
-  </main>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
   <script src="assets/app.js"></script>
   <script>
-    document.getElementById("topbar").innerHTML = SB.topbar("admin-dashboard.html");
-    document.getElementById("alert-ic").innerHTML = SB.icon("bell", 18);
-    document.getElementById("btn-noshow").innerHTML = SB.icon("clock", 16) + " Kiểm tra no-show";
-
-    function tickClock() {
-      const d = new Date();
-      document.getElementById("clock").textContent = SB.fmtDate(d) + " · " + SB.fmtTime(d) + ":" + SB.pad(d.getSeconds());
-    }
-    setInterval(tickClock, 1000); tickClock();
+    document.getElementById("side").innerHTML = SB.adminSidebar("dashboard");
+    document.getElementById("top").innerHTML = SB.adminTop("Dashboard", "Tổng quan vận hành sân", `<button class="btn btn-ghost btn-sm" onclick="if(confirm('Đặt lại dữ liệu demo?')){SB.reset();location.reload()}">Reset demo</button>`);
 
     let revChart = null;
-
     function render() {
       const s = SB.load();
       const occupied = s.courts.filter(c => c.status === "occupied");
       const players = s.courts.reduce((n, c) => n + c.players.length, 0);
       const noshows = SB.detectNoShows();
+      const pending = s.orders.filter(o => o.status === "Chờ thanh toán").length;
+      const cash = SB.cashSummary();
 
-      // KPIs
       document.getElementById("kpis").innerHTML = [
-        [occupied.length + "/" + s.courts.length, "Sân hoạt động", "grid", "var(--color-accent)"],
-        [players, "Người đang chơi", "users", "var(--color-info)"],
-        [s.bookings.length, "Booking hôm nay", "calendar", "#fff"],
-        [noshows.length, "No-show", "clock", noshows.length ? "var(--color-destructive)" : "#fff"],
-        [SB.fmtVND(s.revenueToday), "Doanh thu", "money", "var(--color-accent)"],
-      ].map(([v, l, ic, col]) =>
-        `<div class="card card-pad">
-           <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-             <div class="stat"><span class="val" style="color:${col};font-size:${String(v).length > 7 ? "20px" : "28px"}">${v}</span><span class="lbl">${l}</span></div>
-             <span class="muted">${SB.icon(ic, 20)}</span>
-           </div>
-         </div>`).join("");
+        [SB.fmtVND(s.revenueToday), "Doanh thu hôm nay", "up", "+ hôm nay"],
+        [occupied.length + "/" + s.courts.length, "Sân đang hoạt động", "", players + " người chơi"],
+        [s.members.length, "Khách hàng", "", "toàn hệ thống"],
+        [pending, "Đơn chờ thu", pending ? "down" : "", pending ? "cần xử lý" : "ổn"],
+        [SB.fmtVND(cash.net), "Lãi/lỗ (sổ)", cash.net >= 0 ? "up" : "down", "thu − chi"],
+      ].map(([v, l, cls, d]) =>
+        `<div class="kpi"><div class="lbl">${l}</div><div class="val">${v}</div><div class="delta ${cls}">${d}</div></div>`).join("");
 
       // Court map
       const now = Date.now();
-      document.getElementById("court-map").innerHTML = s.courts.map(c => {
+      document.getElementById("courtmap").innerHTML = s.courts.map(c => {
         const overdue = noshows.some(b => b.court === c.id);
-        const cls = overdue ? "overdue" : (c.status === "occupied" ? "occupied" : "free");
-        let dur = "";
-        if (c.checkinAt) {
-          const mins = Math.floor((now - new Date(c.checkinAt)) / 60000);
-          dur = `<span class="num muted" style="font-size:12px;">${mins} phút</span>`;
-        }
-        const statusBadge = overdue
-          ? `<span class="badge badge-red">Quá giờ</span>`
-          : (c.status === "occupied" ? `<span class="badge badge-green">Đang chơi</span>` : `<span class="badge badge-slate">Trống</span>`);
-        return `<div class="court ${cls}">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <div style="font-weight:700;">${c.name}</div>${statusBadge}
-          </div>
-          <div style="min-height:44px;margin:10px 0;font-size:13px;">
-            ${c.players.length
-              ? c.players.map(p => `<div><span class="level-dot ${SB.LEVELS[p.level].cls}"></span> ${p.name}</div>`).join("")
-              : '<span class="muted">— chưa có người —</span>'}
-          </div>
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            ${dur || '<span></span>'}
-            <div style="display:flex;gap:6px;">
-              <button class="btn btn-sm ${c.light ? "btn-primary" : "btn-ghost"}" title="Đèn sân" onclick="toggleLight(${c.id})">${SB.icon("light", 14)}</button>
-              ${c.status === "occupied" ? `<button class="btn btn-sm btn-ghost" title="Trả sân" onclick="release(${c.id})">${SB.icon("check", 14)}</button>` : ""}
+        const badge = overdue ? `<span class="badge b-red">Quá giờ</span>` : (c.status === "occupied" ? `<span class="badge b-green">Đang chơi</span>` : `<span class="badge b-gray">Trống</span>`);
+        let dur = c.checkinAt ? `<span class="muted num" style="font-size:12px">${Math.floor((now - new Date(c.checkinAt)) / 60000)} phút</span>` : "";
+        return `<div class="card card-pad" style="box-shadow:none;${overdue ? "border-color:var(--danger)" : c.status === "occupied" ? "border-color:var(--accent)" : ""}">
+          <div class="between"><strong style="font-size:14px">${c.name}</strong>${badge}</div>
+          <div class="muted" style="font-size:12px;margin:6px 0;">${c.type} · ${SB.fmtVND(c.pricePerHour)}/h</div>
+          <div style="min-height:20px;font-size:13px">${c.players.map(p => p.name).join(", ") || '<span class="muted">—</span>'}</div>
+          <div class="between" style="margin-top:8px">${dur || "<span></span>"}
+            <div class="row" style="gap:6px">
+              <button class="btn btn-sm ${c.light ? "btn-primary" : "btn-ghost"}" title="Đèn" onclick="tLight(${c.id})">${SB.icon("light", 14)}</button>
+              ${c.status === "occupied" ? `<button class="btn btn-sm btn-ghost" title="Trả sân" onclick="rel(${c.id})">${SB.icon("check", 14)}</button>` : ""}
             </div>
           </div>
         </div>`;
       }).join("");
 
-      // No-show list
-      const nsEl = document.getElementById("noshow-list");
-      if (!noshows.length) {
-        nsEl.innerHTML = `<span style="color:var(--color-accent)">✓ Không có sân nào quá giờ check-in.</span>`;
-      } else {
-        nsEl.innerHTML = noshows.map(b =>
-          `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--color-border);">
-             <div><strong>Sân ${b.court}</strong> · ${b.memberName}<br/><span class="muted" style="font-size:12px;">Đặt ${SB.fmtTime(new Date(b.start))} · quá ${SB.CHECKIN_GRACE_MIN}p</span></div>
-             <button class="btn btn-sm btn-danger" onclick="freeUp(${b.court})">Báo trống</button>
-           </div>`).join("");
-      }
+      // Cash
+      const maxv = Math.max(cash.thu, cash.chi, 1);
+      document.getElementById("cash").innerHTML = `
+        <div style="margin-bottom:14px"><div class="between"><span class="text-2">Tổng thu</span><strong class="num up">${SB.fmtVND(cash.thu)}</strong></div><div class="bar" style="margin-top:6px"><span style="width:${cash.thu / maxv * 100}%"></span></div></div>
+        <div style="margin-bottom:14px"><div class="between"><span class="text-2">Tổng chi</span><strong class="num down">${SB.fmtVND(cash.chi)}</strong></div><div class="bar" style="margin-top:6px"><span style="width:${cash.chi / maxv * 100}%;background:var(--danger)"></span></div></div>
+        <hr class="divider"/>
+        <div class="between"><span style="font-weight:600">Lợi nhuận</span><strong class="num" style="font-size:18px;color:${cash.net >= 0 ? "var(--accent-ink)" : "var(--danger)"}">${SB.fmtVND(cash.net)}</strong></div>
+        <a href="cashflow.html" class="btn btn-sm btn-ghost btn-block" style="margin-top:14px">Xem sổ thu chi</a>`;
 
-      // Bookings
-      document.getElementById("bookings").innerHTML = `<table class="tbl"><thead><tr><th>Giờ</th><th>Khách</th><th>Sân</th><th>TT</th></tr></thead><tbody>` +
+      // No-show
+      const ns = document.getElementById("noshow");
+      ns.innerHTML = noshows.length ? noshows.map(b =>
+        `<div class="between" style="padding:8px 0;border-bottom:1px solid var(--border-2)">
+           <div><strong>Sân ${b.court}</strong> · ${b.memberName}<div class="muted" style="font-size:12px">Đặt ${SB.fmtTime(new Date(b.start))}</div></div>
+           <button class="btn btn-sm btn-danger" onclick="freeUp(${b.court})">Báo trống</button>
+         </div>`).join("") : `<div class="muted" style="padding:14px 0">Không có sân nào quá giờ check-in.</div>`;
+
+      // Bookings table
+      document.getElementById("bookings").innerHTML =
+        `<thead><tr><th>Giờ</th><th>Khách</th><th>Sân</th><th>Thời lượng</th><th class="right">Tiền</th><th>Trạng thái</th></tr></thead><tbody>` +
         s.bookings.slice().sort((a, b) => new Date(a.start) - new Date(b.start)).map(b => {
-          const badge = b.checkedIn ? `<span class="badge badge-green">Đã vào</span>`
-            : (noshows.some(n => n.id === b.id) ? `<span class="badge badge-red">No-show</span>` : `<span class="badge badge-amber">Chờ</span>`);
-          return `<tr><td class="num">${SB.fmtTime(new Date(b.start))}</td><td>${b.memberName}</td><td>Sân ${b.court}</td><td>${badge}</td></tr>`;
-        }).join("") + `</tbody></table>`;
+          const st = b.checkedIn ? `<span class="badge b-green">Đã vào</span>` : (noshows.some(n => n.id === b.id) ? `<span class="badge b-red">No-show</span>` : `<span class="badge b-amber">Chờ</span>`);
+          return `<tr><td class="num">${SB.fmtTime(new Date(b.start))}</td><td>${b.memberName}</td><td>Sân ${b.court}</td><td class="num">${b.durationMin}p</td><td class="num right">${SB.fmtVND(b.price)}</td><td>${st}</td></tr>`;
+        }).join("") + `</tbody>`;
 
-      // CRM
-      renderCRM(s, document.getElementById("crm-search").value.trim().toLowerCase());
-
-      // Revenue chart
-      drawRevenue(s);
+      drawRev(s);
     }
 
-    function renderCRM(s, q) {
-      let list = s.members;
-      if (q) list = list.filter(m => m.name.toLowerCase().includes(q) || m.phone.includes(q));
-      document.getElementById("crm").innerHTML = `<table class="tbl"><thead><tr><th>Tên</th><th>Trình độ</th><th>Buổi</th><th>Lượt</th></tr></thead><tbody>` +
-        list.map(m => `<tr>
-            <td><div>${m.name}</div><div class="muted num" style="font-size:11px;">${m.phone}</div></td>
-            <td><span class="level-dot ${SB.LEVELS[m.level].cls}"></span> ${SB.LEVELS[m.level].name.replace(/\s*\(.*\)/, "")}</td>
-            <td class="num">${m.sessionsLeft}</td>
-            <td class="num">${m.visits}</td>
-          </tr>`).join("") + `</tbody></table>`;
-    }
-    document.getElementById("crm-search").addEventListener("input", (e) => renderCRM(SB.load(), e.target.value.trim().toLowerCase()));
-
-    function drawRevenue(s) {
+    function drawRev(s) {
       const buckets = {};
       s.bookings.forEach(b => { const h = new Date(b.start).getHours(); buckets[h] = (buckets[h] || 0) + b.price; });
       const hours = Object.keys(buckets).map(Number).sort((a, b) => a - b);
-      const labels = hours.map(h => SB.pad(h) + "h");
-      const data = hours.map(h => buckets[h] / 1000);
       if (!window.Chart) return;
-      if (revChart) { revChart.data.labels = labels; revChart.data.datasets[0].data = data; revChart.update(); return; }
-      revChart = new Chart(document.getElementById("rev-chart"), {
+      const cfg = { labels: hours.map(h => SB.pad(h) + "h"), data: hours.map(h => buckets[h] / 1000) };
+      if (revChart) { revChart.data.labels = cfg.labels; revChart.data.datasets[0].data = cfg.data; revChart.update(); return; }
+      revChart = new Chart(document.getElementById("rev"), {
         type: "bar",
-        data: { labels, datasets: [{ label: "Nghìn đồng", data, backgroundColor: "#2FB56B", borderRadius: 6 }] },
-        options: {
-          plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => c.raw.toLocaleString("vi-VN") + ".000đ" } } },
-          scales: {
-            x: { grid: { display: false }, ticks: { color: "#94A3B8" } },
-            y: { grid: { color: "#1e293b" }, ticks: { color: "#94A3B8" } },
-          },
-        },
+        data: { labels: cfg.labels, datasets: [{ label: "Nghìn đồng", data: cfg.data, backgroundColor: "#16A34A", borderRadius: 5, maxBarThickness: 34 }] },
+        options: { plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.raw.toLocaleString("vi-VN") + ".000đ" } } },
+          scales: { x: { grid: { display: false }, ticks: { color: "#5B6675" } }, y: { grid: { color: "#EDF0F3" }, ticks: { color: "#8A94A3" } } } },
       });
     }
 
-    // Actions
-    window.toggleLight = (id) => { const c = SB.toggleLight(id); SB.toast("Đèn sân " + id, c.light ? "Đã BẬT đèn" : "Đã TẮT đèn", c.light ? "ok" : "info"); };
-    window.release = (id) => { SB.releaseCourt(id); SB.toast("Sân " + id, "Đã trả sân, tắt đèn tự động.", "info"); };
+    window.tLight = (id) => { const c = SB.toggleLight(id); SB.adminToast("Đèn Sân " + id, c.light ? "Đã bật" : "Đã tắt", c.light ? "ok" : "info"); };
+    window.rel = (id) => { SB.releaseCourt(id); SB.adminToast("Sân " + id, "Đã trả sân.", "info"); };
     window.freeUp = (court) => {
-      const s = SB.load();
-      const b = s.bookings.find(x => x.court === court && !x.checkedIn);
+      const s = SB.load(); const b = s.bookings.find(x => x.court === court && !x.checkedIn);
       if (b) { b.status = "no-show"; SB.save(s); }
-      SB.releaseCourt(court);
-      SB.announce(`Sân ${court} hiện đang trống, mời khách vãng lai đăng ký`);
-    };
-
-    document.getElementById("btn-noshow").onclick = () => {
-      const n = SB.detectNoShows().length;
-      SB.toast("Quét no-show", n ? `Phát hiện ${n} sân quá giờ check-in.` : "Không có sân nào quá giờ.", n ? "warn" : "ok");
+      SB.releaseCourt(court); SB.adminToast("Sân " + court, "Đã báo trống.", "warn");
     };
 
     render();
-    setInterval(render, 5000); // cập nhật thời lượng/no-show định kỳ
+    setInterval(render, 5000);
     window.addEventListener("sbadm:update", render);
     window.addEventListener("storage", render);
   </script>

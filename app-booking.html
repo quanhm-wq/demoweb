@@ -6,13 +6,16 @@
   <title>Đặt sân — Smart Pickleball</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/admin.css" />
 </head>
-<body class="bg-app">
-  <div id="topbar"></div>
-
-  <main class="container" style="max-width:720px;padding-top:32px;padding-bottom:64px;">
+<body>
+  <div class="admin">
+  <div id="side"></div>
+  <div class="a-main">
+  <div id="top"></div>
+  <div class="a-content">
+  <main class="container" style="max-width:760px;">
     <h1 style="font-size:26px;margin-bottom:6px;">Đặt sân online</h1>
     <p class="muted" style="margin-bottom:20px;">Đăng ký thành viên → chọn sân → thanh toán → đăng ký khuôn mặt → nhận QR/PIN</p>
 
@@ -130,10 +133,12 @@
       </div>
     </section>
   </main>
+  </div></div></div>
 
   <script src="assets/app.js"></script>
   <script>
-    document.getElementById("topbar").innerHTML = SB.topbar("app-booking.html");
+    document.getElementById("side").innerHTML = SB.adminSidebar("booking");
+    document.getElementById("top").innerHTML = SB.adminTop("Đặt sân", "Đăng ký, chọn sân, thanh toán, QR/PIN");
     document.getElementById("ok-icon").innerHTML = SB.icon("check", 48);
 
     // ---- State của luồng đặt sân ----

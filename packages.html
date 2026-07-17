@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gói thuê — Quản trị Smart Pickleball</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/admin.css" />
+</head>
+<body>
+  <div class="admin">
+    <div id="side"></div>
+    <div class="a-main">
+      <div id="top"></div>
+      <div class="a-content">
+        <div class="grid" id="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:18px;"></div>
+
+        <div class="between" style="margin-bottom:14px;flex-wrap:wrap;gap:10px">
+          <div class="tabs" style="margin:0;border:0">
+            <div class="tab active" data-f="all" id="f-all">Tất cả</div>
+            <div class="tab" data-f="Vãng lai" id="f-vanglai">Vãng lai</div>
+            <div class="tab" data-f="Cố định" id="f-codinh">Cố định</div>
+          </div>
+          <select class="input" id="f-status" style="width:auto;height:36px"><option value="">Mọi trạng thái</option><option>Đang hiệu lực</option><option>Chờ thanh toán</option><option>Hoàn tất</option></select>
+        </div>
+
+        <div class="card" style="overflow:hidden"><div class="scroll-x"><table class="tbl" id="tbl"></table></div>
+          <div id="empty" class="muted" style="display:none;padding:26px;text-align:center">Không có đơn/gói phù hợp.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="modal-root"></div>
+
+  <script src="assets/app.js"></script>
+  <script>
+    document.getElementById("side").innerHTML = SB.adminSidebar("packages");
+    document.getElementById("top").innerHTML = SB.adminTop("Gói thuê", "Đơn thuê vãng lai và gói cố định của khách",
+      `<button class="btn btn-primary btn-sm" id="add">${SB.icon("plus", 15)} Tạo đơn / gói</button>`);
+
+    let ftype = "all";
+    ["all", "Vãng lai", "Cố định"].forEach((f, i) => document.getElementById(["f-all", "f-vanglai", "f-codinh"][i]).onclick = () => { ftype = f; document.querySelectorAll(".tab").forEach(t => t.classList.remove("active")); document.getElementById(["f-all", "f-vanglai", "f-codinh"][i]).classList.add("active"); render(); });
+    document.getElementById("f-status").addEventListener("change", render);
+
+    function stBadge(s) { return { "Đang hiệu lực": "b-green", "Hoàn tất": "b-blue", "Chờ thanh toán": "b-amber" }[s] || "b-gray"; }
+
+    function render() {
+      const s = SB.load();
+      const codinh = s.orders.filter(o => o.type === "Cố định" && o.status === "Đang hiệu lực").length;
+      const pending = s.orders.filter(o => o.status === "Chờ thanh toán").length;
+      const revenue = s.orders.filter(o => o.status !== "Chờ thanh toán").reduce((a, o) => a + o.amount, 0);
+      document.getElementById("stats").innerHTML = [
+        [s.orders.length, "Tổng đơn/gói"],
+        [codinh, "Gói cố định hiệu lực"],
+        [pending, "Chờ thanh toán"],
+        [SB.fmtVND(revenue), "Doanh thu đã thu"],
+      ].map(([v, l]) => `<div class="kpi"><div class="lbl">${l}</div><div class="val">${v}</div></div>`).join("");
+
+      const fst = document.getElementById("f-status").value;
+      let list = s.orders.slice();
+      if (ftype !== "all") list = list.filter(o => o.type === ftype);
+      if (fst) list = list.filter(o => o.status === fst);
+      list.sort((a, b) => new Date(b.at) - new Date(a.at));
+
+      document.getElementById("tbl").innerHTML =
+        `<thead><tr><th>Khách hàng</th><th>Loại</th><th>Chi tiết</th><th class="right">Số tiền</th><th>Ngày</th><th>Trạng thái</th><th></th></tr></thead><tbody>` +
+        list.map(o => `<tr>
+          <td style="font-weight:600">${o.memberName}</td>
+          <td><span class="badge ${o.type === "Cố định" ? "b-green" : "b-gray"}">${o.type}</span></td>
+          <td style="max-width:280px">${o.detail}</td>
+          <td class="num right" style="font-weight:600">${SB.fmtVND(o.amount)}</td>
+          <td class="num">${SB.fmtDate(new Date(o.at))}</td>
+          <td><span class="badge ${stBadge(o.status)}">${o.status}</span></td>
+          <td class="right">${o.status === "Chờ thanh toán" ? `<button class="btn btn-sm btn-primary" onclick="pay('${o.id}')">Xác nhận thu</button>` : ""}</td>
+        </tr>`).join("") + `</tbody>`;
+      document.getElementById("empty").style.display = list.length ? "none" : "block";
+    }
+
+    window.pay = (id) => { SB.updateOrderStatus(id, "Hoàn tất"); SB.adminToast("Đã ghi nhận thanh toán", "Khoản thu đã vào sổ.", "ok"); render(); };
+
+    document.getElementById("add").onclick = () => {
+      const s = SB.load();
+      const memOpts = s.members.map(m => `<option value="${m.id}" data-name="${m.name}">${m.name} · ${m.phone}</option>`).join("");
+      openOverlay(`<div class="overlay center" onclick="if(event.target===this)closeOverlay()"><div class="modal">
+        <div class="modal-hd"><h3>Tạo đơn / gói thuê</h3><button class="btn btn-ghost btn-sm" onclick="closeOverlay()">Đóng</button></div>
+        <div style="padding:18px"><div class="grid" style="gap:14px">
+          <div class="field"><label>Khách hàng</label><select class="input" id="o-mem">${memOpts}</select></div>
+          <div class="field"><label>Loại</label><select class="input" id="o-type"><option>Vãng lai</option><option>Cố định</option></select></div>
+          <div class="field"><label>Chi tiết</label><input class="input" id="o-detail" placeholder="VD: Gói 10 buổi / Khung 18h T2-4-6"/></div>
+          <div class="field"><label>Số tiền (đồng)</label><input class="input num" type="number" step="10000" id="o-amount" value="180000"/></div>
+          <div class="field"><label>Trạng thái</label><select class="input" id="o-status"><option>Đang hiệu lực</option><option>Hoàn tất</option><option>Chờ thanh toán</option></select></div>
+        </div>
+        <div class="row" style="justify-content:flex-end;margin-top:18px;gap:8px"><button class="btn btn-ghost" onclick="closeOverlay()">Huỷ</button><button class="btn btn-primary" id="o-save">Lưu đơn</button></div>
+        </div></div></div>`);
+      document.getElementById("o-save").onclick = () => {
+        const sel = document.getElementById("o-mem");
+        const name = sel.options[sel.selectedIndex].dataset.name;
+        SB.addOrder({ memberId: sel.value, memberName: name, type: document.getElementById("o-type").value, detail: document.getElementById("o-detail").value.trim() || "—", amount: +document.getElementById("o-amount").value, status: document.getElementById("o-status").value });
+        SB.adminToast("Đã tạo đơn", name, "ok");
+        closeOverlay(); render();
+      };
+    };
+
+    function openOverlay(html) { document.getElementById("modal-root").innerHTML = html; document.body.style.overflow = "hidden"; }
+    window.closeOverlay = () => { document.getElementById("modal-root").innerHTML = ""; document.body.style.overflow = ""; };
+    document.addEventListener("keydown", e => { if (e.key === "Escape") closeOverlay(); });
+
+    render();
+    window.addEventListener("sbadm:update", render);
+    window.addEventListener("storage", render);
+  </script>
+</body>
+</html>

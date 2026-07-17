@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Thu / Chi — Quản trị Smart Pickleball</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/admin.css" />
+</head>
+<body>
+  <div class="admin">
+    <div id="side"></div>
+    <div class="a-main">
+      <div id="top"></div>
+      <div class="a-content">
+        <div class="grid" id="stats" style="grid-template-columns:repeat(3,1fr);margin-bottom:18px;"></div>
+
+        <div class="grid" style="grid-template-columns:1fr 1fr;margin-bottom:18px;align-items:start">
+          <div class="card"><div class="card-hd"><h3>Cơ cấu khoản chi</h3></div><div class="card-pad"><canvas id="chi-chart" height="150"></canvas></div></div>
+          <div class="card"><div class="card-hd"><h3>Thu theo nguồn</h3></div><div class="card-pad" id="thu-break"></div></div>
+        </div>
+
+        <div class="card" style="overflow:hidden">
+          <div class="card-hd"><h3>Sổ thu chi</h3>
+            <div class="row" style="gap:8px">
+              <select class="input" id="f-type" style="width:auto;height:34px"><option value="">Tất cả</option><option value="thu">Chỉ thu</option><option value="chi">Chỉ chi</option></select>
+              <button class="btn btn-primary btn-sm" id="add-thu">＋ Phiếu thu</button>
+              <button class="btn btn-sm" id="add-chi" style="border-color:var(--danger);color:var(--danger)">＋ Phiếu chi</button>
+            </div>
+          </div>
+          <div class="scroll-x"><table class="tbl" id="tbl"></table></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="modal-root"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <script src="assets/app.js"></script>
+  <script>
+    document.getElementById("side").innerHTML = SB.adminSidebar("cashflow");
+    document.getElementById("top").innerHTML = SB.adminTop("Thu / Chi", "Dòng tiền của sân");
+
+    document.getElementById("f-type").addEventListener("change", render);
+    document.getElementById("add-thu").onclick = () => txModal("thu");
+    document.getElementById("add-chi").onclick = () => txModal("chi");
+
+    let chiChart = null;
+    function render() {
+      const s = SB.load(); const sum = SB.cashSummary();
+      document.getElementById("stats").innerHTML = [
+        [SB.fmtVND(sum.thu), "Tổng thu", "up"],
+        [SB.fmtVND(sum.chi), "Tổng chi", "down"],
+        [SB.fmtVND(sum.net), "Lợi nhuận", sum.net >= 0 ? "up" : "down"],
+      ].map(([v, l, cls]) => `<div class="kpi"><div class="lbl">${l}</div><div class="val ${cls}">${v}</div></div>`).join("");
+
+      // thu theo nguồn
+      const thu = {}; s.transactions.filter(t => t.type === "thu").forEach(t => thu[t.category] = (thu[t.category] || 0) + t.amount);
+      const thuTotal = Object.values(thu).reduce((a, b) => a + b, 0) || 1;
+      document.getElementById("thu-break").innerHTML = Object.entries(thu).sort((a, b) => b[1] - a[1]).map(([k, v]) =>
+        `<div style="margin-bottom:12px"><div class="between"><span>${k}</span><strong class="num">${SB.fmtVND(v)}</strong></div><div class="bar" style="margin-top:5px"><span style="width:${v / thuTotal * 100}%"></span></div></div>`).join("")
+        || `<div class="muted">Chưa có khoản thu.</div>`;
+
+      // table
+      const ft = document.getElementById("f-type").value;
+      let list = s.transactions.slice(); if (ft) list = list.filter(t => t.type === ft);
+      list.sort((a, b) => new Date(b.at) - new Date(a.at));
+      document.getElementById("tbl").innerHTML =
+        `<thead><tr><th>Ngày</th><th>Loại</th><th>Hạng mục</th><th>Diễn giải</th><th class="right">Số tiền</th><th></th></tr></thead><tbody>` +
+        list.map(t => `<tr>
+          <td class="num">${SB.fmtDate(new Date(t.at))}</td>
+          <td>${t.type === "thu" ? '<span class="badge b-green">Thu</span>' : '<span class="badge b-red">Chi</span>'}</td>
+          <td>${t.category}</td><td style="max-width:280px" class="muted">${t.note || "—"}</td>
+          <td class="num right" style="font-weight:600;color:${t.type === "thu" ? "var(--accent-ink)" : "var(--danger)"}">${t.type === "thu" ? "+" : "−"}${SB.fmtVND(t.amount)}</td>
+          <td class="right"><button class="btn btn-ghost btn-sm" title="Xoá" onclick="delTx('${t.id}')">✕</button></td>
+        </tr>`).join("") + `</tbody>`;
+
+      drawChi(s);
+    }
+
+    function drawChi(s) {
+      const chi = {}; s.transactions.filter(t => t.type === "chi").forEach(t => chi[t.category] = (chi[t.category] || 0) + t.amount);
+      const labels = Object.keys(chi), data = Object.values(chi).map(v => Math.round(v / 1000));
+      if (!window.Chart) return;
+      const colors = ["#DC2626", "#B45309", "#2563EB", "#7c3aed", "#0891b2", "#65a30d", "#db2777"];
+      if (chiChart) chiChart.destroy();
+      chiChart = new Chart(document.getElementById("chi-chart"), {
+        type: "doughnut",
+        data: { labels, datasets: [{ data, backgroundColor: labels.map((_, i) => colors[i % colors.length]), borderColor: "#fff", borderWidth: 2 }] },
+        options: { cutout: "60%", plugins: { legend: { position: "right", labels: { color: "#5B6675", font: { size: 12 }, boxWidth: 12 } }, tooltip: { callbacks: { label: c => c.label + ": " + c.raw.toLocaleString("vi-VN") + ".000đ" } } } },
+      });
+    }
+
+    window.delTx = (id) => { if (confirm("Xoá khoản này?")) { SB.removeTransaction(id); SB.adminToast("Đã xoá", "", "info"); render(); } };
+
+    function txModal(type) {
+      const cats = type === "thu" ? ["Đặt sân", "Bán gói", "Bán nước/đồ", "Khác"] : ["Tiền điện", "Tiền nước", "Lương", "Thuê mặt bằng", "Vật tư", "Bảo trì", "Marketing", "Khác"];
+      openOverlay(`<div class="overlay center" onclick="if(event.target===this)closeOverlay()"><div class="modal">
+        <div class="modal-hd"><h3>${type === "thu" ? "Phiếu thu" : "Phiếu chi"}</h3><button class="btn btn-ghost btn-sm" onclick="closeOverlay()">Đóng</button></div>
+        <div style="padding:18px"><div class="grid" style="gap:14px">
+          <div class="field"><label>Hạng mục</label><select class="input" id="t-cat">${cats.map(c => `<option>${c}</option>`).join("")}</select></div>
+          <div class="field"><label>Số tiền (đồng)</label><input class="input num" type="number" step="10000" id="t-amount" value="${type === "thu" ? 100000 : 500000}"/></div>
+          <div class="field"><label>Diễn giải</label><input class="input" id="t-note" placeholder="Ghi chú..."/></div>
+        </div>
+        <div class="row" style="justify-content:flex-end;margin-top:18px;gap:8px"><button class="btn btn-ghost" onclick="closeOverlay()">Huỷ</button><button class="btn ${type === "thu" ? "btn-primary" : "btn-danger"}" id="t-save">Lưu phiếu</button></div>
+        </div></div></div>`);
+      document.getElementById("t-save").onclick = () => {
+        SB.addTransaction({ type, category: document.getElementById("t-cat").value, amount: +document.getElementById("t-amount").value, note: document.getElementById("t-note").value.trim() });
+        SB.adminToast(type === "thu" ? "Đã ghi phiếu thu" : "Đã ghi phiếu chi", "", type === "thu" ? "ok" : "warn");
+        closeOverlay(); render();
+      };
+    }
+
+    function openOverlay(html) { document.getElementById("modal-root").innerHTML = html; document.body.style.overflow = "hidden"; }
+    window.closeOverlay = () => { document.getElementById("modal-root").innerHTML = ""; document.body.style.overflow = ""; };
+    document.addEventListener("keydown", e => { if (e.key === "Escape") closeOverlay(); });
+
+    render();
+    window.addEventListener("sbadm:update", render);
+    window.addEventListener("storage", render);
+  </script>
+</body>
+</html>

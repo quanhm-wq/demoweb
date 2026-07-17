@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Thống kê — Quản trị Smart Pickleball</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/admin.css" />
+  <style>
+    .chart-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    @media (max-width:1200px){ .chart-grid{ grid-template-columns:repeat(2,1fr); } }
+    @media (max-width:760px){ .chart-grid{ grid-template-columns:1fr; } }
+    .chart-box { height: 240px; padding: 14px 16px 16px; }
+    .sec-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 22px 4px 12px; }
+  </style>
+</head>
+<body>
+  <div class="admin">
+    <div id="side"></div>
+    <div class="a-main">
+      <div id="top"></div>
+      <div class="a-content">
+        <div class="grid" id="kpis" style="grid-template-columns:repeat(5,1fr);margin-bottom:6px;"></div>
+        <div id="sections"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <script src="assets/app.js"></script>
+  <script>
+    document.getElementById("side").innerHTML = SB.adminSidebar("reports");
+    document.getElementById("top").innerHTML = SB.adminTop("Thống kê", "20 biểu đồ vận hành · tài chính · khách hàng");
+    const C = SB.CHART; C.applyDefaults(Chart);
+    const s = SB.load();
+
+    // ---------- tiện ích ----------
+    function rng(seed) { let x = seed % 2147483647; if (x <= 0) x += 2147483646; return () => (x = x * 16807 % 2147483647) / 2147483647; }
+    const money = v => SB.fmtVND(v);
+    const kd = v => Math.round(v).toLocaleString("vi-VN"); // nghìn đồng hiển thị
+    function lastDays(n) { const out = []; const now = new Date(); for (let i = n - 1; i >= 0; i--) { const d = new Date(now); d.setDate(now.getDate() - i); out.push(SB.pad(d.getDate()) + "/" + SB.pad(d.getMonth() + 1)); } return out; }
+    const months = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12"];
+    const WEEKDAYS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
+
+    // ---------- helper vẽ ----------
+    const moneyTip = (unit) => ({ callbacks: { label: c => (c.dataset.label ? c.dataset.label + ": " : "") + kd(c.parsed.y ?? c.parsed) + (unit || "") } });
+    function bar(id, labels, data, o = {}) {
+      new Chart(id, { type: "bar", data: { labels, datasets: [{ label: o.label || "", data, backgroundColor: o.color || C.primary, borderRadius: 5, maxBarThickness: 30 }] },
+        options: { indexAxis: o.horizontal ? "y" : "x", plugins: { legend: { display: false }, tooltip: o.tip || {} },
+          scales: { x: { grid: { display: !o.horizontal ? false : true, color: C.grid }, ticks: { color: C.ink, maxRotation: 0, autoSkip: true } }, y: { grid: { color: C.grid, display: !!o.horizontal ? false : true }, ticks: { color: C.ink } } } } });
+    }
+    function line(id, labels, data, o = {}) {
+      new Chart(id, { type: "line", data: { labels, datasets: [{ label: o.label || "", data, borderColor: o.color || C.primary, backgroundColor: o.area ? "rgba(57,135,229,.12)" : "transparent", fill: !!o.area, tension: .35, borderWidth: 2, pointRadius: 0, pointHoverRadius: 4 }] },
+        options: { plugins: { legend: { display: false }, tooltip: o.tip || {} }, scales: { x: { grid: { display: false }, ticks: { color: C.ink, maxRotation: 0, autoSkip: true, maxTicksLimit: 8 } }, y: { grid: { color: C.grid }, ticks: { color: C.ink } } } } });
+    }
+    function pie(id, labels, data, o = {}) {
+      new Chart(id, { type: o.pie ? "pie" : "doughnut", data: { labels, datasets: [{ data, backgroundColor: o.colors || C.cat, borderColor: "#fff", borderWidth: 2 }] },
+        options: { cutout: o.pie ? 0 : "58%", plugins: { legend: { position: "right", labels: { color: C.ink } }, tooltip: o.tip || {} } } });
+    }
+    function grouped(id, labels, datasets, o = {}) {
+      new Chart(id, { type: "bar", data: { labels, datasets: datasets.map((d, i) => ({ label: d.label, data: d.data, backgroundColor: d.color, borderRadius: 4, maxBarThickness: 22 })) },
+        options: { plugins: { legend: { position: "top", align: "end" }, tooltip: o.tip || {} }, scales: { x: { grid: { display: false }, ticks: { color: C.ink } }, y: { grid: { color: C.grid }, ticks: { color: C.ink } } } } });
+    }
+
+    // ---------- dữ liệu ----------
+    const r = rng(20260717);
+    // tài chính (mock time-series, đơn vị nghìn đồng)
+    const rev30 = lastDays(30).map(() => Math.round(1500 + r() * 3500));
+    const revMonth = months.map((_, i) => Math.round(38000 + r() * 42000 + i * 1500));
+    const thu6 = months.slice(0, 6).map(() => Math.round(45000 + r() * 30000));
+    const chi6 = months.slice(0, 6).map(() => Math.round(38000 + r() * 12000));
+    const profit6 = thu6.map((v, i) => v - chi6[i]);
+    const newCustMonth = months.map(() => Math.round(3 + r() * 12));
+    const occHour = []; for (let h = 6; h <= 22; h++) { const peak = h >= 17 && h <= 21 ? 55 : (h >= 8 && h <= 11 ? 30 : 12); occHour.push(Math.min(100, Math.round(peak + r() * 30))); }
+    const bookWeekday = WEEKDAYS.map((d, i) => Math.round((i >= 5 ? 34 : 18) + r() * 12));
+
+    // chi theo hạng mục (thật)
+    const chiCat = {}; s.transactions.filter(t => t.type === "chi").forEach(t => chiCat[t.category] = (chiCat[t.category] || 0) + t.amount);
+    const thuCat = {}; s.transactions.filter(t => t.type === "thu").forEach(t => thuCat[t.category] = (thuCat[t.category] || 0) + t.amount);
+    // đơn (thật)
+    const ordType = { "Vãng lai": 0, "Cố định": 0 }; s.orders.forEach(o => ordType[o.type] += o.amount);
+    const ordStatus = {}; s.orders.forEach(o => ordStatus[o.status] = (ordStatus[o.status] || 0) + 1);
+    // sân (thật + mock)
+    const indoor = s.courts.filter(c => c.type === "Trong nhà").length, outdoor = s.courts.length - indoor;
+    const revByCourt = s.courts.map(c => { let v = s.bookings.filter(b => b.court === c.id).reduce((a, b) => a + b.price, 0); return Math.round((v + r() * 4000000) / 1000); });
+    const durCount = { "60 phút": s.bookings.filter(b => b.durationMin === 60).length + 6, "90 phút": s.bookings.filter(b => b.durationMin === 90).length + 9 };
+    // khách (thật)
+    const lvOrder = Object.keys(SB.LEVELS);
+    const byLevel = lvOrder.map(l => s.members.filter(m => m.level === l).length);
+    const gender = { "Nam": s.members.filter(m => m.gender === "m").length, "Nữ": s.members.filter(m => m.gender === "f").length };
+    const byPkg = {}; s.members.forEach(m => byPkg[m.pkg] = (byPkg[m.pkg] || 0) + 1);
+    const ageB = { "<20": 0, "20–25": 0, "26–30": 0, "31–40": 0, ">40": 0 };
+    s.members.forEach(m => { if (!m.dob) return; const a = new Date().getFullYear() - new Date(m.dob).getFullYear(); if (a < 20) ageB["<20"]++; else if (a <= 25) ageB["20–25"]++; else if (a <= 30) ageB["26–30"]++; else if (a <= 40) ageB["31–40"]++; else ageB[">40"]++; });
+    const topSpend = s.members.slice().sort((a, b) => (b.spent || 0) - (a.spent || 0)).slice(0, 6);
+    const visitB = { "<10": 0, "10–20": 0, "21–30": 0, ">30": 0 };
+    s.members.forEach(m => { const v = m.visits; if (v < 10) visitB["<10"]++; else if (v <= 20) visitB["10–20"]++; else if (v <= 30) visitB["21–30"]++; else visitB[">30"]++; });
+
+    // ---------- KPI ----------
+    const cash = SB.cashSummary();
+    document.getElementById("kpis").innerHTML = [
+      [money(s.revenueToday), "Doanh thu hôm nay"],
+      [money(cash.thu), "Tổng thu (sổ)"],
+      [money(cash.chi), "Tổng chi (sổ)"],
+      [s.members.length, "Khách hàng"],
+      [s.orders.length, "Đơn/gói"],
+    ].map(([v, l]) => `<div class="kpi"><div class="lbl">${l}</div><div class="val" style="font-size:${String(v).length > 8 ? "18px" : "24px"}">${v}</div></div>`).join("");
+
+    // ---------- khai báo 20 biểu đồ ----------
+    const CHARTS = [
+      ["Tài chính", [
+        ["c1", "Doanh thu 30 ngày (nghìn đ)"], ["c2", "Doanh thu theo tháng (nghìn đ)"], ["c3", "Thu vs Chi 6 tháng (nghìn đ)"],
+        ["c4", "Lợi nhuận theo tháng (nghìn đ)"], ["c5", "Cơ cấu khoản chi"], ["c6", "Thu theo nguồn"],
+        ["c7", "Doanh thu theo loại gói"], ["c8", "Đơn theo trạng thái"],
+      ]],
+      ["Sân bãi", [
+        ["c9", "Tỉ lệ lấp đầy theo giờ (%)"], ["c10", "Lượt đặt theo thứ trong tuần"], ["c11", "Doanh thu theo sân (nghìn đ)"],
+        ["c12", "Loại sân"], ["c13", "Thời lượng đặt sân"],
+      ]],
+      ["Khách hàng", [
+        ["c14", "Khách theo trình độ"], ["c15", "Giới tính khách"], ["c16", "Khách theo gói"],
+        ["c17", "Phân bố độ tuổi"], ["c18", "Top khách chi tiêu (nghìn đ)"], ["c19", "Tần suất đến sân"],
+        ["c20", "Khách mới theo tháng"],
+      ]],
+    ];
+    document.getElementById("sections").innerHTML = CHARTS.map(([sec, items]) =>
+      `<div class="sec-title">${sec}</div><div class="chart-grid">` +
+      items.map(([id, title]) => `<div class="card"><div class="card-hd"><h3>${title}</h3></div><div class="chart-box"><canvas id="${id}"></canvas></div></div>`).join("") +
+      `</div>`).join("");
+
+    // ---------- vẽ ----------
+    const tipK = moneyTip(" nghìn đ");
+    bar("c2", months, revMonth, { tip: tipK });
+    line("c1", lastDays(30), rev30, { area: true, tip: tipK });
+    grouped("c3", months.slice(0, 6), [{ label: "Thu", data: thu6, color: C.cat[1] }, { label: "Chi", data: chi6, color: C.cat[7] }], { tip: tipK });
+    line("c4", months.slice(0, 6), profit6, { area: true, color: C.cat[1], tip: tipK });
+    pie("c5", Object.keys(chiCat), Object.values(chiCat).map(v => Math.round(v / 1000)), { colors: C.cat, tip: moneyTip(" nghìn đ") });
+    bar("c6", Object.keys(thuCat), Object.values(thuCat).map(v => Math.round(v / 1000)), { color: C.cat[0], tip: tipK });
+    bar("c7", Object.keys(ordType), Object.values(ordType).map(v => Math.round(v / 1000)), { color: C.cat[4], tip: tipK });
+    pie("c8", Object.keys(ordStatus), Object.values(ordStatus), { colors: [C.status.good, C.status.warning, C.status.serious] });
+
+    bar("c9", Array.from({ length: 17 }, (_, i) => SB.pad(i + 6) + "h"), occHour, { color: C.primary, tip: { callbacks: { label: c => c.parsed.y + "%" } } });
+    bar("c10", WEEKDAYS, bookWeekday, { color: C.cat[6] });
+    bar("c11", s.courts.map(c => c.name), revByCourt, { horizontal: true, color: C.cat[0], tip: tipK });
+    pie("c12", ["Trong nhà", "Ngoài trời"], [indoor, outdoor], { colors: [C.cat[0], C.cat[5]] });
+    pie("c13", Object.keys(durCount), Object.values(durCount), { colors: [C.cat[3], C.cat[4]] });
+
+    bar("c14", lvOrder.map(l => SB.LEVELS[l].name.replace(/\s*\(.*\)/, "")), byLevel, { color: C.cat[2] });
+    pie("c15", Object.keys(gender), Object.values(gender), { pie: true, colors: [C.cat[0], C.cat[2]] });
+    pie("c16", Object.keys(byPkg), Object.values(byPkg), { colors: C.cat });
+    bar("c17", Object.keys(ageB), Object.values(ageB), { color: C.cat[6] });
+    bar("c18", topSpend.map(m => m.name.split(" ").slice(-1)[0]), topSpend.map(m => Math.round((m.spent || 0) / 1000)), { horizontal: true, color: C.cat[4], tip: tipK });
+    bar("c19", Object.keys(visitB), Object.values(visitB), { color: C.cat[7] });
+    line("c20", months, newCustMonth, { color: C.cat[4], tip: { callbacks: { label: c => c.parsed.y + " khách" } } });
+  </script>
+</body>
+</html>

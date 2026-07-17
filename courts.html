@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sân &amp; bảng giá — Quản trị Smart Pickleball</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/admin.css" />
+</head>
+<body>
+  <div class="admin">
+    <div id="side"></div>
+    <div class="a-main">
+      <div id="top"></div>
+      <div class="a-content">
+        <div class="tabs">
+          <div class="tab active" data-t="catalog" id="t-catalog">Danh mục sân</div>
+          <div class="tab" data-t="calendar" id="t-calendar">Lịch đặt sân</div>
+          <div class="tab" data-t="pricing" id="t-pricing">Bảng giá</div>
+        </div>
+
+        <!-- CATALOG -->
+        <section id="s-catalog">
+          <div class="between" style="margin-bottom:14px"><div class="muted">Danh sách sân và giá thuê theo giờ</div><button class="btn btn-primary btn-sm" id="add-court">＋ Thêm sân</button></div>
+          <div class="card" style="overflow:hidden"><div class="scroll-x"><table class="tbl" id="courts-tbl"></table></div></div>
+        </section>
+
+        <!-- CALENDAR -->
+        <section id="s-calendar" style="display:none">
+          <div class="row wrap" style="margin-bottom:14px;gap:10px">
+            <div class="field"><label>Ngày</label><input class="input" type="date" id="cal-date" style="width:auto"/></div>
+            <div class="row" style="gap:14px;align-self:flex-end;margin-bottom:6px;font-size:12.5px">
+              <span><span class="dot" style="background:var(--info)"></span> Đã đặt</span>
+              <span><span class="dot" style="background:#fff;border:1px solid var(--border)"></span> Trống (bấm để đặt)</span>
+            </div>
+          </div>
+          <div class="card card-pad scroll-x"><table class="cal" id="cal"></table></div>
+        </section>
+
+        <!-- PRICING -->
+        <section id="s-pricing" style="display:none">
+          <div class="grid" style="grid-template-columns:1fr 1.4fr;align-items:start">
+            <div class="card">
+              <div class="card-hd"><h3>Quy tắc giá</h3></div>
+              <div class="card-pad grid" style="gap:14px" id="price-form"></div>
+            </div>
+            <div class="card">
+              <div class="card-hd"><h3>Bảng giá áp dụng (đồng/giờ)</h3></div>
+              <div class="scroll-x"><table class="tbl" id="price-tbl"></table></div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+  <div id="modal-root"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <script src="assets/app.js"></script>
+  <script>
+    SB.CHART.applyDefaults(Chart);
+    document.getElementById("side").innerHTML = SB.adminSidebar("courts");
+    document.getElementById("top").innerHTML = SB.adminTop("Sân & bảng giá", "Danh mục sân, lịch đặt và giá thuê");
+
+    let tab = "catalog";
+    ["catalog", "calendar", "pricing"].forEach(t => document.getElementById("t-" + t).onclick = () => setTab(t));
+    function setTab(t) {
+      tab = t;
+      ["catalog", "calendar", "pricing"].forEach(x => {
+        document.getElementById("t-" + x).classList.toggle("active", x === t);
+        document.getElementById("s-" + x).style.display = x === t ? "" : "none";
+      });
+      render();
+    }
+
+    // ---------- Catalog ----------
+    function renderCatalog() {
+      const s = SB.load();
+      document.getElementById("courts-tbl").innerHTML =
+        `<thead><tr><th>Sân</th><th>Loại</th><th>Mặt sân</th><th class="right">Giá/giờ</th><th>Trạng thái</th><th></th></tr></thead><tbody>` +
+        s.courts.map(c => {
+          const st = c.status === "occupied" ? `<span class="badge b-green">Đang chơi</span>` : `<span class="badge b-gray">Trống</span>`;
+          return `<tr onclick="detail(${c.id})" style="cursor:pointer"><td style="font-weight:600">${c.name}</td><td>${c.type}</td><td>${c.surface}</td><td class="num right">${SB.fmtVND(c.pricePerHour)}</td><td>${st}</td>
+            <td class="right"><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();editCourt(${c.id})">Sửa</button></td></tr>`;
+        }).join("") + `</tbody>`;
+    }
+    window.editCourt = (id) => {
+      const c = SB.load().courts.find(x => x.id === id);
+      courtModal(c);
+    };
+    document.getElementById("add-court").onclick = () => courtModal(null);
+    function courtModal(c) {
+      const isNew = !c;
+      openOverlay(`<div class="overlay center" onclick="if(event.target===this)closeOverlay()"><div class="modal">
+        <div class="modal-hd"><h3>${isNew ? "Thêm sân" : "Sửa " + c.name}</h3><button class="btn btn-ghost btn-sm" onclick="closeOverlay()">Đóng</button></div>
+        <div style="padding:18px"><div class="grid" style="grid-template-columns:1fr 1fr">
+          <div class="field" style="grid-column:1/3"><label>Tên sân</label><input class="input" id="c-name" value="${c ? c.name : ""}" placeholder="Sân 7"/></div>
+          <div class="field"><label>Loại</label><select class="input" id="c-type"><option ${c && c.type === "Trong nhà" ? "selected" : ""}>Trong nhà</option><option ${c && c.type === "Ngoài trời" ? "selected" : ""}>Ngoài trời</option></select></div>
+          <div class="field"><label>Mặt sân</label><input class="input" id="c-surface" value="${c ? c.surface : "Sơn Acrylic"}"/></div>
+          <div class="field" style="grid-column:1/3"><label>Giá thuê/giờ (đồng)</label><input class="input num" id="c-price" type="number" step="10000" value="${c ? c.pricePerHour : 120000}"/></div>
+        </div>
+        <div class="row" style="justify-content:flex-end;margin-top:18px;gap:8px"><button class="btn btn-ghost" onclick="closeOverlay()">Huỷ</button><button class="btn btn-primary" id="c-save">Lưu</button></div>
+        </div></div></div>`);
+      document.getElementById("c-save").onclick = () => {
+        const patch = { name: document.getElementById("c-name").value.trim(), type: document.getElementById("c-type").value, surface: document.getElementById("c-surface").value.trim(), pricePerHour: +document.getElementById("c-price").value };
+        if (isNew) { SB.addCourt(patch); SB.adminToast("Đã thêm sân", patch.name, "ok"); }
+        else { SB.updateCourt(c.id, patch); SB.adminToast("Đã lưu", patch.name, "ok"); }
+        closeOverlay(); render();
+      };
+    }
+
+    // ---------- Chi tiết sân ----------
+    function rngC(seed) { let x = seed % 2147483647; if (x <= 0) x += 2147483646; return () => (x = x * 16807 % 2147483647) / 2147483647; }
+    window.detail = (id) => {
+      const st = SB.load(); const c = st.courts.find(x => x.id === id); if (!c) return;
+      const today = new Date().toISOString().slice(0, 10);
+      const todays = st.bookings.filter(b => b.court === id && new Date(b.start).toISOString().slice(0, 10) === today).sort((a, b) => new Date(a.start) - new Date(b.start));
+      const rr = rngC(id * 131 + 7);
+      const revToday = todays.reduce((a, b) => a + b.price, 0);
+      const revWeek = revToday + Math.round(rr() * 5 + 3) * 1000000;
+      const revMonth = revWeek * 4 + Math.round(rr() * 4000000);
+      const hoursArr = []; for (let h = 6; h <= 22; h++) {
+        const booked = todays.some(b => { const sh = new Date(b.start).getHours(); const em = new Date(b.end); const eh = em.getHours() + (em.getMinutes() > 0 ? 1 : 0); return h >= sh && h < eh; });
+        hoursArr.push(booked ? 100 : Math.round(rr() * 65));
+      }
+      const util = Math.round(hoursArr.reduce((a, b) => a + b, 0) / hoursArr.length);
+      const wk = [0, 6].includes(new Date().getDay());
+
+      const sched = todays.length ? todays.map(b => `<div class="between" style="padding:7px 0;border-bottom:1px solid var(--border-2)"><span><strong class="num">${SB.fmtTime(new Date(b.start))}–${SB.fmtTime(new Date(b.end))}</strong> · ${b.memberName}</span>${b.checkedIn ? '<span class="badge b-green">Đã vào</span>' : '<span class="badge b-amber">Chờ</span>'}</div>`).join("") : `<div class="muted" style="padding:10px 0">Hôm nay chưa có lượt đặt.</div>`;
+
+      openOverlay(`<div class="overlay right" onclick="if(event.target===this)closeOverlay()"><div class="drawer">
+        <div class="drawer-hd"><div><h3>${c.name}</h3><div class="muted" style="font-size:13px">${c.type} · ${c.surface}</div></div>
+          <div class="row" style="gap:8px">${c.status === "occupied" ? '<span class="badge b-green">Đang chơi</span>' : '<span class="badge b-gray">Trống</span>'}<button class="btn btn-ghost btn-sm" onclick="closeOverlay()">Đóng</button></div></div>
+        <div style="padding:18px">
+          <div class="grid" style="grid-template-columns:1fr 1fr;margin-bottom:16px">
+            <div class="kpi"><div class="lbl">Tỉ lệ lấp đầy hôm nay</div><div class="val" style="font-size:22px">${util}%</div></div>
+            <div class="kpi"><div class="lbl">Lượt đặt hôm nay</div><div class="val" style="font-size:22px">${todays.length}</div></div>
+            <div class="kpi"><div class="lbl">Doanh thu hôm nay</div><div class="val" style="font-size:18px;color:var(--accent-ink)">${SB.fmtVND(revToday)}</div></div>
+            <div class="kpi"><div class="lbl">Ước tính tháng</div><div class="val" style="font-size:18px">${SB.fmtVND(revMonth)}</div></div>
+          </div>
+
+          <div class="card card-pad" style="margin-bottom:16px">
+            <div style="font-weight:650;margin-bottom:8px">Bảng giá sân này</div>
+            ${priceRow("Giá gốc / giờ", SB.courtPrice(c, {}))}
+            ${priceRow("Cuối tuần (T7/CN)", SB.courtPrice(c, { weekend: true }))}
+            ${priceRow("Lễ / tết", SB.courtPrice(c, { holiday: true }))}
+            ${priceRow("Giờ cao điểm", SB.courtPrice(c, { peak: true }))}
+          </div>
+
+          <div class="card card-pad" style="margin-bottom:16px">
+            <div style="font-weight:650;margin-bottom:6px">Tỉ lệ lấp đầy theo giờ (hôm nay)</div>
+            <div style="height:170px"><canvas id="court-occ"></canvas></div>
+          </div>
+
+          <div style="font-weight:650;margin-bottom:8px">Lịch đặt hôm nay ${wk ? '<span class="badge b-amber" style="margin-left:6px">Cuối tuần</span>' : ""}</div>
+          <div style="margin-bottom:16px">${sched}</div>
+          ${c.players.length ? `<div class="card card-pad" style="margin-bottom:16px"><div style="font-weight:650;margin-bottom:6px">Đang trên sân</div>${c.players.map(p => `<div class="row" style="gap:8px;padding:3px 0"><span class="dot" style="background:var(--accent)"></span> ${p.name} · ${SB.LEVELS[p.level].name.replace(/\s*\(.*\)/, "")}</div>`).join("")}</div>` : ""}
+
+          <div class="row" style="gap:8px"><button class="btn btn-primary btn-sm" onclick="closeOverlay();editCourt(${c.id})">Sửa thông tin sân</button><button class="btn btn-ghost btn-sm" onclick="closeOverlay();setTab('calendar')">Xem lịch đặt</button></div>
+        </div>
+      </div></div>`);
+
+      const labels = []; for (let h = 6; h <= 22; h++) labels.push(SB.pad(h) + "h");
+      new Chart("court-occ", { type: "bar", data: { labels, datasets: [{ data: hoursArr, backgroundColor: hoursArr.map(v => v >= 100 ? SB.CHART.cat[1] : SB.CHART.primary), borderRadius: 4, maxBarThickness: 16 }] },
+        options: { plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.parsed.y + "%" } } }, scales: { x: { grid: { display: false }, ticks: { color: SB.CHART.ink, maxRotation: 0, autoSkip: true } }, y: { max: 100, grid: { color: SB.CHART.grid }, ticks: { color: SB.CHART.ink } } } } });
+    };
+    function priceRow(k, v) { return `<div class="between" style="padding:5px 0;border-bottom:1px solid var(--border-2)"><span class="muted">${k}</span><strong class="num">${SB.fmtVND(v)}</strong></div>`; }
+
+    // ---------- Calendar (kiểu khách sạn) ----------
+    const HOURS = []; for (let h = 6; h <= 21; h++) HOURS.push(h);
+    document.getElementById("cal-date").addEventListener("change", renderCalendar);
+    function renderCalendar() {
+      const s = SB.load();
+      const dateStr = document.getElementById("cal-date").value || new Date().toISOString().slice(0, 10);
+      document.getElementById("cal-date").value = dateStr;
+      const day = new Date(dateStr); const now = new Date();
+      const isToday = dateStr === now.toISOString().slice(0, 10);
+      // map booking theo sân+giờ
+      const occ = {};
+      s.bookings.forEach(b => {
+        if (new Date(b.start).toISOString().slice(0, 10) !== dateStr) return;
+        const sh = new Date(b.start).getHours(), eh = Math.ceil(new Date(b.end).getTime() / 3600000) - Math.floor(new Date(b.start).getTime() / 3600000) + sh;
+        const endH = new Date(b.end).getHours() + (new Date(b.end).getMinutes() > 0 ? 1 : 0);
+        for (let h = sh; h < endH; h++) occ[b.court + "_" + h] = b;
+      });
+      let html = `<thead><tr><th class="rowhd">Sân \\ Giờ</th>${HOURS.map(h => `<th>${SB.pad(h)}h</th>`).join("")}</tr></thead><tbody>`;
+      html += s.courts.map(c => `<tr><td class="rowhd">${c.name}<div class="muted" style="font-size:11px;font-weight:400">${SB.fmtVND(c.pricePerHour)}/h</div></td>` +
+        HOURS.map(h => {
+          const b = occ[c.id + "_" + h];
+          const past = isToday && h < now.getHours();
+          if (b) return `<td class="cell booked" title="${b.memberName}"><span class="chip">${b.memberName.split(" ").slice(-1)[0]}</span></td>`;
+          if (past) return `<td class="cell past"></td>`;
+          return `<td class="cell free" onclick="quickBook(${c.id},${h},'${dateStr}')"></td>`;
+        }).join("") + `</tr>`).join("");
+      html += `</tbody>`;
+      document.getElementById("cal").innerHTML = html;
+    }
+    window.quickBook = (courtId, hour, dateStr) => {
+      const s = SB.load(); const c = s.courts.find(x => x.id === courtId);
+      const memOpts = s.members.map(m => `<option value="${m.id}">${m.name} · ${m.phone}</option>`).join("");
+      openOverlay(`<div class="overlay center" onclick="if(event.target===this)closeOverlay()"><div class="modal">
+        <div class="modal-hd"><h3>Đặt ${c.name} · ${SB.pad(hour)}:00</h3><button class="btn btn-ghost btn-sm" onclick="closeOverlay()">Đóng</button></div>
+        <div style="padding:18px"><div class="grid" style="gap:14px">
+          <div class="field"><label>Khách hàng</label><select class="input" id="qb-mem">${memOpts}</select></div>
+          <div class="field"><label>Thời lượng</label><select class="input" id="qb-dur"><option value="60">60 phút</option><option value="90" selected>90 phút</option></select></div>
+          <div class="between"><span class="muted">Ngày ${SB.fmtDate(new Date(dateStr))}</span><strong class="num" id="qb-price"></strong></div>
+        </div>
+        <div class="row" style="justify-content:flex-end;margin-top:18px;gap:8px"><button class="btn btn-ghost" onclick="closeOverlay()">Huỷ</button><button class="btn btn-primary" id="qb-save">Xác nhận đặt</button></div>
+        </div></div></div>`);
+      const wk = [0, 6].includes(new Date(dateStr).getDay());
+      const peak = hour >= s.pricing.peakFrom && hour < s.pricing.peakTo;
+      const upd = () => { const dur = +document.getElementById("qb-dur").value; const p = Math.round(SB.courtPrice(c, { weekend: wk, peak }) * dur / 60 / 1000) * 1000; document.getElementById("qb-price").textContent = SB.fmtVND(p); document.getElementById("qb-save").dataset.price = p; };
+      document.getElementById("qb-dur").onchange = upd; upd();
+      document.getElementById("qb-save").onclick = () => {
+        const start = new Date(dateStr); start.setHours(hour, 0, 0, 0);
+        const dur = +document.getElementById("qb-dur").value;
+        SB.createBooking({ memberId: document.getElementById("qb-mem").value, court: courtId, startISO: start.toISOString(), durationMin: dur, sessionsPack: 0 });
+        SB.adminToast("Đã đặt sân", `${c.name} · ${SB.pad(hour)}:00 · ${dur}p`, "ok");
+        closeOverlay(); renderCalendar();
+      };
+    };
+
+    // ---------- Pricing ----------
+    function renderPricing() {
+      const s = SB.load(); const p = s.pricing;
+      document.getElementById("price-form").innerHTML = [
+        ["weekendMult", "Hệ số cuối tuần (T7/CN)", p.weekendMult, "0.1"],
+        ["holidayMult", "Hệ số lễ / tết", p.holidayMult, "0.1"],
+        ["peakMult", "Hệ số giờ cao điểm", p.peakMult, "0.1"],
+        ["peakFrom", "Cao điểm từ (giờ)", p.peakFrom, "1"],
+        ["peakTo", "Cao điểm đến (giờ)", p.peakTo, "1"],
+        ["dayPass", "Vé ngày (đồng)", p.dayPass, "10000"],
+        ["monthly", "Vé tháng (đồng)", p.monthly, "50000"],
+      ].map(([k, l, v, step]) => `<div class="field"><label>${l}</label><input class="input num" type="number" step="${step}" id="p-${k}" value="${v}"/></div>`).join("")
+        + `<button class="btn btn-primary" id="p-save">Lưu bảng giá</button>`;
+      document.getElementById("p-save").onclick = () => {
+        const patch = {};
+        ["weekendMult", "holidayMult", "peakMult", "peakFrom", "peakTo", "dayPass", "monthly"].forEach(k => patch[k] = +document.getElementById("p-" + k).value);
+        SB.updatePricing(patch); SB.adminToast("Đã lưu bảng giá", "", "ok"); renderPricing();
+      };
+      // preview
+      document.getElementById("price-tbl").innerHTML =
+        `<thead><tr><th>Sân</th><th class="right">Ngày thường</th><th class="right">Cuối tuần</th><th class="right">Lễ/tết</th><th class="right">Cao điểm</th></tr></thead><tbody>` +
+        s.courts.map(c => `<tr><td style="font-weight:600">${c.name}</td>
+          <td class="num right">${SB.fmtVND(SB.courtPrice(c, {}))}</td>
+          <td class="num right">${SB.fmtVND(SB.courtPrice(c, { weekend: true }))}</td>
+          <td class="num right">${SB.fmtVND(SB.courtPrice(c, { holiday: true }))}</td>
+          <td class="num right">${SB.fmtVND(SB.courtPrice(c, { peak: true }))}</td></tr>`).join("")
+        + `<tr><td style="font-weight:600">Vé ngày / tháng</td><td class="num right" colspan="2">${SB.fmtVND(p.dayPass)} /ngày</td><td class="num right" colspan="2">${SB.fmtVND(p.monthly)} /tháng</td></tr>`
+        + `</tbody>`;
+    }
+
+    function render() {
+      if (tab === "catalog") renderCatalog();
+      else if (tab === "calendar") { if (!document.getElementById("cal-date").value) document.getElementById("cal-date").value = new Date().toISOString().slice(0, 10); renderCalendar(); }
+      else renderPricing();
+    }
+
+    function openOverlay(html) { document.getElementById("modal-root").innerHTML = html; document.body.style.overflow = "hidden"; }
+    window.closeOverlay = () => { document.getElementById("modal-root").innerHTML = ""; document.body.style.overflow = ""; };
+    document.addEventListener("keydown", e => { if (e.key === "Escape") closeOverlay(); });
+
+    render();
+    window.addEventListener("sbadm:update", render);
+  </script>
+</body>
+</html>
